@@ -46,6 +46,12 @@ test('a recycled feed anchor becomes visible when it becomes a listing',()=>{
   assert(!a.hasAttribute('data-mo-focus-hidden'));assert.equal(a.style.display,'');
   a.href='https://www.facebook.com/watch/';f.context.__marketOnlySweep();assert(a.hasAttribute('data-mo-focus-hidden'));
 });
+test('authentication restores focus-hidden nodes without changing their inline styles',()=>{
+  const f=fixture('https://www.facebook.com/marketplace/',{links:['https://www.facebook.com/watch/']});
+  const a=f.anchors[0];assert(a.hasAttribute('data-mo-focus-hidden'));
+  f.location.pathname='/checkpoint/123';f.context.__marketOnlySweep();
+  assert(!a.hasAttribute('data-mo-focus-hidden'));assert.equal(a.style.display,'');
+});
 test('SPA navigation to feed is blocked',()=>{
   const f=fixture('https://www.facebook.com/marketplace/'); f.context.history.pushState(null,'','/watch/');assert.equal(f.redirects.length,1);
 });

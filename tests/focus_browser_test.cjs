@@ -21,8 +21,16 @@ const base=path.resolve(__dirname,'..');
   await page.waitForFunction(()=>getComputedStyle(document.querySelector('nav')).display!=='none');
   await link.evaluate(e=>e.href='/marketplace/item/43/');
   await page.waitForFunction(()=>getComputedStyle(document.querySelector('#recycled')).display!=='none');
+  // Verify longer titles wrap without losing the location below them.
+  await page.setContent('<html data-mo-page="browse"><head></head><body><div data-mo-summary style="width:178px"><span data-mo-summary-title>$2,500 · 1982 Jeep Cherokee four wheel drive project</span><span data-mo-summary-location>Gold Coast, QLD</span></div></body></html>');
+  await page.addStyleTag({content:fs.readFileSync(path.join(base,'app/src/main/assets/marketplace.css'),'utf8')});
+  const title=page.locator('[data-mo-summary-title]');
+  const metrics=await title.evaluate(e=>({height:e.getBoundingClientRect().height,line:parseFloat(getComputedStyle(e).lineHeight)}));
+  assert(metrics.height>metrics.line && metrics.height<=metrics.line*2+1);
+  const location=await page.locator('[data-mo-summary-location]').boundingBox(),titleBox=await title.boundingBox();
+  assert(location.y>=titleBox.y+titleBox.height);
   assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(base,'test-output/focus-browser-results.json'),JSON.stringify({passed:true,scope:'Controlled browser DOM; no Facebook or Android login tested.'},null,2));
-  console.log('PASS: href and navigation-role changes restore valid UI and preserve inline styles');
+  console.log('PASS: recycled links, navigation-role restoration, inline styles, two-line titles and location captions');
  } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1});
