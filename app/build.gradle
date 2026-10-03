@@ -1,0 +1,20 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'au.sutto.marketonly'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'au.sutto.marketonly'
+        minSdk 26
+        targetSdk 35
+        versionCode 20
+        versionName '1.1.17'
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.dev'
+            versionNameSuffix '-test'
+            resValue 'string', 'app_name', 'MarketOnly Test'
+        }
+    }
+}

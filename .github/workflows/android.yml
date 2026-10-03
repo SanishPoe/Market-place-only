@@ -1,0 +1,59 @@
+name: Build and verify MarketOnly
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - uses: android-actions/setup-android@v3
+      - name: Install build and browser tools
+        run: |
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          npm install --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          mkdir -p test-output
+      - name: Verify routing, lifecycle and browser behavior
+        run: python3 tests/run_checks.py --browser
+      - name: Verify local listing storage and Smart Search
+        run: |
+          curl --fail --location --retry 3 https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar --output /tmp/marketonly-json.jar
+          javac -classpath "$ANDROID_HOME/platforms/android-35/android.jar:/tmp/marketonly-json.jar" -d /tmp/marketonly-tests app/src/main/java/au/sutto/marketonly/UrlRules.java app/src/main/java/au/sutto/marketonly/ExternalLinks.java app/src/main/java/au/sutto/marketonly/SmartSearch.java app/src/main/java/au/sutto/marketonly/ListingStore.java tests/SmartSearchTest.java
+          java -classpath "/tmp/marketonly-tests:/tmp/marketonly-json.jar:$ANDROID_HOME/platforms/android-35/android.jar" au.sutto.marketonly.SmartSearchTest
+      - name: Build test APK
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Verify installer
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk dist/MarketOnly-1.1.17-test.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MarketOnly-1.1.17-test.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 dist/MarketOnly-1.1.17-test.apk
+          python3 verify_apk_layout.py dist/MarketOnly-1.1.17-test.apk
+          sha256sum dist/MarketOnly-1.1.17-test.apk > dist/SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarketOnly-1.1.17-test
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: MarketOnly-test-results
+          path: test-output/
+          if-no-files-found: ignore

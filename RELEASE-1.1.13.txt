@@ -1,0 +1,18 @@
+MarketOnly 1.1.13 (versionCode 16)
+
+Explore and More > Refresh share one explicit resource-cache-clearing reload path.
+HTTP resource-cache bypass now remains active through late fetches/pagination
+until deliberate navigation; main-page completion no longer resets it.
+Service-worker HTTP cache mode is also set. Cookies/local storage remain intact.
+No recommendation shuffling, query-string cache busters, or invented results.
+
+Copy refresh report exports aggregate DOM comparison counts and load-start status.
+Raw listing IDs are compared in memory but excluded from the copied report.
+The report is local and only copied upon the user's explicit menu action.
+Sampling at 2, 5, 10, and 20 seconds. This is not network response proof.
+
+Validation: official Android SDK compile; v2/v3 signatures; same certificate as
+1.1.12; APK zip integrity/resources alignment and source asset equality;
+52 URL tests, 10 navigation guard fixtures, 7 refresh snapshot fixtures passed.
+No Android device/emulator or authenticated Facebook acceptance test available.
+Website recommendations may still repeat even on network-only reload.

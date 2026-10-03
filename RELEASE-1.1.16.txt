@@ -1,0 +1,64 @@
+MarketOnly 1.1.16 (versionCode 19)
+
+SEARCH RESULTS STAY OPEN
+Opening a Marketplace listing now keeps the original results WebView alive
+behind it. Both the top-left arrow and Android Back return to that same page,
+with its query, Facebook filters, loaded results and scroll position. No reload
+or Explore navigation occurs on this return. Listing anchors are intercepted
+before Facebook's page navigation can replace the search route. The ordinary
+link handler and new-window handler retain results as well. Photo-viewer Back
+still closes the photo first. Up to four return pages are retained, always
+preserving the original page. Rotation does not recreate the browsing Activity.
+An Android process termination or WebView renderer crash can still require a
+reload; this is not an offline copy of Facebook's results.
+
+SMART SEARCH
+Tap Smart beside Explore. This searches summaries encountered near the viewport
+while you browse Marketplace. The catalogue is stored only on this phone, capped
+at 400 items and 30 days, with a Clear local listing history control. It does not
+scan Facebook in the background or use a paid AI service.
+- Interpret budget phrases such as 'Holden Cruze under $5k'.
+- Filter by maximum price, excluded words, unopened listings, repair terms and
+  mentions of write-offs. Sort by unopened first, lowest price or recently seen.
+- Hide unwanted listings locally and restore them later.
+- Track price changes when a different asking price is observed for the same item.
+- Find more on Marketplace opens a Facebook search. Browse/scroll the results,
+  then use Back to return to Smart Search with the newly observed summaries.
+- Location/radius remain Facebook controls. 'Within 200 km' is recognised as a
+  reminder to set that radius; it is NOT silently enforced by the local filter.
+- Repair/write-off matches use only available listing text. Missing wording does
+  not establish condition or a clear write-off history. The user must verify.
+
+CHECK PRICE
+A Check Price button appears on listing pages, also available in the top menu.
+Edit the comparable model/item name if needed. Choose at least three comparable
+listings from the local catalogue to show their asking-price range and median.
+The current item is excluded, and a supplied model year restricts candidates to
+within two years. The user must check condition, kilometres and specification.
+The display explicitly distinguishes asking prices from confirmed sales, and
+shows insufficient data rather than inventing a valuation. Find similar listings
+opens a Marketplace search while preserving the current listing to return to.
+A calculator uses user-entered asking price, expected resale, parts/repairs and
+other costs to estimate margin before tax. It does not diagnose faults or predict
+an actual resale result. There is no cross-site pricing feed in this release.
+
+VALIDATION
+- 23 Java checks of query parsing, filters, comparison maths and persisted
+  catalogue behavior using the actual storage class and an in-memory preferences
+  adapter (including canonical URLs, duplicate updates, stale data and clear).
+- Actual retained navigation methods executed against stateful WebView fakes:
+  original page identity/query/filter URL/results/scroll retained, both Back
+  paths, deeper navigation, original-page retention and Smart panel restoration.
+- 11 controlled Chromium DOM/click fixtures: ordinary and compact cards,
+  discounted prices, foreign currencies, duplicate/split anchors, detail metadata,
+  dynamic cards, long feeds, original SPA click prevention and private input
+  exclusion. No live Facebook requests are made by these fixtures.
+- Existing external-intent lifecycle, guard, refresh and pull-down checks pass.
+- APK compilation, package/version, signature and resource alignment verified.
+  Same signing key; install as Update, without uninstalling.
+- Android UI, authenticated Facebook layouts and real-device Back/scroll still
+  need acceptance on the phone. Controlled fixtures do not prove device behavior.
+
+ONE FIRST PHONE TEST
+Search for something, scroll down, open one listing, then press Back. Confirm
+that the same search results return at the same position.

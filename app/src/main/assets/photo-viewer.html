@@ -1,0 +1,33 @@
+<!doctype html>
+<html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://*.fbcdn.net https://fbcdn.net https://*.fbsbx.com https://fbsbx.com https://*.facebook.com https://facebook.com; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<style>
+html,body{margin:0;width:100%;height:100%;background:#000;overflow:hidden}
+img{display:block;width:100%;height:100%;object-fit:contain;touch-action:pan-y pinch-zoom}
+</style></head><body><img alt="Listing photo" src="__PHOTO_URL__">
+<script>
+(function(){
+  'use strict';
+  let gesture=null;
+  const zoomed=()=>window.visualViewport&&window.visualViewport.scale>1.05;
+  window.__marketOnlyPhotoStep=direction=>{location.href='marketonly://photo-step?direction='+direction};
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1||zoomed()){gesture=null;return;}
+    const p=e.touches[0];gesture={x:p.clientX,y:p.clientY,endX:p.clientX,endY:p.clientY};
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!gesture)return;
+    if(e.touches.length!==1||zoomed()){gesture=null;return;}
+    const p=e.touches[0];gesture.endX=p.clientX;gesture.endY=p.clientY;
+    if(Math.abs(p.clientX-gesture.x)>12&&Math.abs(p.clientX-gesture.x)>Math.abs(p.clientY-gesture.y)*1.4)e.preventDefault();
+  },{passive:false});
+  document.addEventListener('touchend',e=>{
+    const g=gesture;gesture=null;if(!g||zoomed())return;
+    const dx=g.endX-g.x,dy=g.endY-g.y;
+    if(Math.abs(dx)>=40&&Math.abs(dx)>Math.abs(dy)*1.4){e.preventDefault();window.__marketOnlyPhotoStep(dx<0?1:-1);}
+  },{passive:false});
+  document.addEventListener('touchcancel',()=>{gesture=null},{passive:true});
+})();
+</script></body></html>

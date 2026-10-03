@@ -1,0 +1,25 @@
+MarketOnly 1.1.14, versionCode 17
+
+Confirmed release defect: 1.1.13 onPageFinished still restored WebView cache mode.
+The earlier text replacement had missed that line; prior validation failed to
+exercise the callback. It has now been removed. An executable test extracts the
+real callback body and runs it against a minimal WebView fake: fails for exact
+1.1.13 backup; passes four lifecycle assertions for corrected source.
+Service-worker cache mode and actual view cache mode are now in the refresh report.
+
+Pull-down refresh: original DOM touch listener, no JS interface; native custom
+scheme accepted only for trusted Facebook browse/search/saved pages. Works only
+at top of document and every containing scroll panel. Pull 85 CSS px, release.
+Short/retreated/cancelled gestures do not refresh. Horizontal swipes, pinch,
+forms/dialogs, listing galleries, and Sell excluded. Refreshes current page,
+preserving search and Saved route. Pull indicator overlays without layout gaps.
+
+Validation: 12 gesture fixtures, 7 snapshot fixtures, 4 actual-callback lifecycle
+cases, 10 navigation guard fixtures, 52 URL cases; official SDK compilation;
+v2/v3 signature; APK layout and embedded asset equality verified.
+No authenticated Facebook or Android device test. New recommendation rotation
+remains unverified; no shuffling or fabricated result data added.
+
+Phone acceptance: update; pull down at Explore top; wait 20 seconds; More > Copy
+refresh report if same items remain. Aggregate-only report; no listing IDs,
+cookies, account details, page text, or response bodies in clipboard output.

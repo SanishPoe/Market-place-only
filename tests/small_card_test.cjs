@@ -1,0 +1,28 @@
+/* Narrow photo wrappers with overlaid badges: controlled DOM regression. */
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const {chromium}=require('playwright');
+const base=path.resolve(__dirname,'..');
+const asset=n=>fs.readFileSync(path.join(base,'app/src/main/assets',n),'utf8');
+const image='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect width="200" height="200" fill="#963e43"/></svg>');
+const card=(id,badge=false)=>`<div id="card-${id}"><a href="/marketplace/item/${id}/" onclick="event.preventDefault();window.opened=${id}"><div class="photo ${badge?'narrow':''}"><div class="pixels"><img src="${image}"></div>${badge?'<span class="badge">Just listed</span>':''}</div><div class="caption"><span>$1,195</span><span>Listing ${id}</span></div></a><button onclick="window.saved=${id}">Save</button></div>`;
+const ad='<div id="ad"><a href="https://example.test/advert"><img src="'+image+'"><span>Ad</span></a></div>';
+const fixture=`<html><head><meta name="viewport" content="width=device-width, initial-scale=1"><style>body{margin:0;background:#242526;color:white;font:16px Arial}.photo{position:relative;width:100%;padding-top:100%}.photo.narrow{width:50%}.pixels{position:absolute;inset:0}.pixels img{position:absolute;width:100%;height:100%}.badge{position:absolute;top:10px;left:10px;background:white;color:black;padding:6px}.caption span{display:block}a{color:white;text-decoration:none}</style></head><body><main role="main"><div id="results"><div>${card(1)}${card(2)}</div><div id="mixed">${ad}${card(3,true)}</div><div>${card(4)}${card(5)}</div></div></main></body></html>`;
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.TEST_CHROME||chromium.executablePath(),args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:384,height:760}});page.setDefaultTimeout(1500);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',r=>r.fulfill({status:200,contentType:'text/html',body:fixture}));
+ await page.goto('https://www.facebook.com/marketplace/');
+ await page.evaluate(asset('adblock.js'));await page.evaluate(c=>window.__marketOnlyCss=c,asset('marketplace.css'));await page.evaluate(asset('marketplace.js'));await page.waitForTimeout(350);
+ const results=[];async function test(name,fn){try{await fn();results.push({name,passed:true});console.log('PASS:',name)}catch(e){results.push({name,passed:false,error:e.message});console.error('FAIL:',name,e.message)}}
+ await test('a badged listing after a hidden ad has the same photo size as ordinary listings',async()=>{const a=await page.locator('#card-1 img').boundingBox(),b=await page.locator('#card-3 img').boundingBox();assert(Math.abs(a.width-b.width)<1,JSON.stringify({normal:a.width,small:b.width}));assert(Math.abs(b.width-b.height)<1);assert.equal(await page.locator('#ad').isVisible(),false)});
+ await test('the badge stays over its photo and retains its text',async()=>{const badge=await page.locator('#card-3 .badge').boundingBox(),photo=await page.locator('#card-3 img').boundingBox();assert(badge.x>=photo.x&&badge.y>=photo.y);assert(badge.x+badge.width<=photo.x+photo.width);assert.equal(await page.locator('#card-3 .badge').textContent(),'Just listed')});
+ await test('photo, caption and Save still use their original actions',async()=>{await page.locator('#card-3 img').click();assert.equal(await page.evaluate(()=>window.opened),3);await page.locator('#card-3 [data-mo-summary]').click();await page.locator('#card-3 button').click();assert.equal(await page.evaluate(()=>window.saved),3)});
+ await test('badged photos retain one full column on a narrow phone',async()=>{await page.setViewportSize({width:320,height:740});const r=await page.locator('#card-3 img').boundingBox();assert(Math.abs(r.width-158)<1,JSON.stringify(r));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.setViewportSize({width:384,height:760})});
+ await test('restoring adverts does not shrink neighbouring photos',async()=>{await page.evaluate(()=>{window.__marketOnlyHideAds=false;window.__marketOnlyAdSweep()});assert(await page.locator('#ad').isVisible());assert(Math.abs((await page.locator('#card-3 img').boundingBox()).width-190)<1);await page.evaluate(()=>{window.__marketOnlyHideAds=true;window.__marketOnlyAdSweep()})});
+ await test('new badge text and repeated passes keep photo dimensions stable',async()=>{await page.locator('#card-3 .badge').evaluate(e=>e.textContent='Pending');await page.evaluate(()=>{for(let i=0;i<3;i++)window.__marketOnlyLayout()});assert(Math.abs((await page.locator('#card-3 img').boundingBox()).width-190)<1);assert.equal(await page.locator('#card-3 .badge').textContent(),'Pending')});
+ await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:path.join(base,'test-output/small-card-fixture.png'),fullPage:true});
+ await test('layout report identifies a small photo without copying listing content',async()=>{await page.locator('#card-3 img').evaluate(e=>e.style.transform='scale(.5)');const raw=await page.evaluate(()=>window.__marketOnlyLayoutReport()),report=JSON.parse(raw);assert.equal(report.smallListings.length,1);assert.equal(report.smallListings[0][0].node.rect[2],95);for(const text of ['Listing 3','1,195','marketplace/item','example.test'])assert(!raw.includes(text));assert(raw.length<50000)});
+ assert.deepEqual(errors,[]);fs.writeFileSync(path.join(base,'test-output/small-card-results.json'),JSON.stringify({scope:'Controlled DOM fixtures, not a captured Facebook page.',results},null,2));
+ await browser.close();if(results.some(r=>!r.passed))process.exitCode=1;
+})();

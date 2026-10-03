@@ -1,0 +1,14 @@
+/.gradle/
+/.idea/
+/local.properties
+/build/
+/app/build/
+/build-manual/
+/dist/
+/test-output/
+/private-signing/
+/node_modules/
+__pycache__/
+*.p12
+*.jks
+*.keystore

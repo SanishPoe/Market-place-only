@@ -1,0 +1,30 @@
+MarketOnly 1.1.17 audit improvements
+Version code: 20
+
+Fixed reversible focus hiding for Facebook DOM recycling; observe href, role,
+and aria-label changes. Preserve Facebook-owned inline styles. Show compact
+listing titles on up to two lines without removing location captions.
+
+Sign-out now replaces the live WebView, closes account overlays, removes
+retained pages and stored listing summaries, cancels pending file selection,
+and invalidates refresh state. Existing source-identity checks discard late
+snapshots from the removed account page. A stateful regression executes the
+actual reset and capture method bodies.
+
+Added portable test runner, DOM recycling browser regression, and CI APK build.
+Gradle manifest no longer contains a package attribute rejected by AGP 8;
+the standalone AAPT2 builder supplies it in a generated build manifest.
+
+Debug package: au.sutto.marketonly.dev; label: MarketOnly Test.
+It installs alongside the original app. Production updates still need the
+original private signing key, which is not present in the source archive.
+
+Local standalone routing/lifecycle/JavaScript checks passed. Browser checks
+and full Android compilation are run by GitHub Actions and must be reviewed
+before installing an artifact. Real Facebook and Android acceptance is not
+performed automatically; retain the user's working release for comparison.
+
+Audit concerns remaining: feed blocking uses known denied routes rather than
+an exhaustive Marketplace allowlist; overlapping DOM observers can perform
+redundant work on large result lists. Changing either requires phone testing
+to protect seller connections, authentication, and scrolling.

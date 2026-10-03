@@ -1,0 +1,47 @@
+MarketOnly 1.1.15 (versionCode 18)
+
+OPEN MARKETPLACE LINKS IN MARKETONLY
+- Registers tapped http/https Marketplace links for facebook.com,
+  www.facebook.com, m.facebook.com, web.facebook.com and mbasic.facebook.com.
+- Opens the selected listing from a cold start or in the existing app. Consumes
+  the incoming intent so rotating the phone does not reopen an earlier link.
+- Shared text can contain a direct Marketplace link or a Facebook l.php wrapper
+  whose encoded destination is a direct Marketplace link. HTTP upgrades to HTTPS.
+- More / top-right menu > Open listing links here provides Android settings
+  shortcuts for MarketOnly and Facebook.
+
+ONE-TIME PHONE SETUP
+1. Install this APK as an update; do not uninstall the existing app.
+2. Open MarketOnly > top-right three dots > Open listing links here.
+3. Choose MarketOnly settings, enable Open supported links, and select the
+   Facebook addresses under Supported web addresses / Add links.
+4. If Facebook owns those links, use Facebook settings in the same dialog and
+   turn off its Open supported links, then select MarketOnly's addresses again.
+   Disabling Facebook's setting also affects its other Facebook links.
+5. Try one direct Marketplace listing link from Messenger.
+Android labels and default-link selection vary by phone/version. Android 8-11
+may show an app chooser instead; select MarketOnly and Always when offered.
+
+LIMITS
+This does not modify Facebook or Messenger. Apps can retain an internal viewer
+or explicitly launch Facebook rather than ask Android which app should open a
+URL. In that case, share the direct listing URL to MarketOnly. Opaque /share/
+links and fb:// app links are not claimed: those can lead to unrelated Facebook
+content and do not expose a Marketplace destination. Use the original listing
+URL where needed. MarketOnly cannot guarantee control over every external tap.
+
+VALIDATION
+- 46 executable Java external-link checks; 52 existing URL routing checks.
+- Actual cold/warm lifecycle method bodies executed with minimal intent and
+  WebView fakes: initial link, subsequent links, rotation, overlays, CharSequence
+  shares, invalid input and ordinary app launch.
+- Manifest checked for exact domains, Marketplace-only paths and no new
+  permissions. Existing 10 guard checks and 4 refresh lifecycle checks pass.
+- APK compiled with SDK 35, signature v2/v3 and resource layout/alignment verify.
+- Same package and signing certificate as previous builds.
+- No Android emulator/device or signed-in Facebook/Messenger acceptance test
+  available here. Android domain selection and Messenger handoff need phone
+  verification. Browser/layout/gallery/refresh assets are unchanged from 1.1.14.
+
+Android reference:
+https://developer.android.com/training/app-links/verify-applinks
