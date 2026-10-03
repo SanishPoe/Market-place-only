@@ -1,13 +1,15 @@
-MarketOnly 1.1.16 - Source project
+For the current 1.1.17 audit fixes and side-by-side test installation, see README.md and RELEASE-1.1.17.txt.
+
+MarketOnly 1.1.17 - Source project
 =================================
-Version code: 19
+Version code: 20
 Android package: au.sutto.marketonly
 Minimum Android: 8.0 (API 26)
 Compile/target SDK: 35
 
 This ZIP contains the complete application source, resources, build scripts,
-controlled tests and recent release notes. The application source is unchanged
-from version 1.1.16. See RELEASE-1.1.16.txt for Smart Search, Check Price and
+controlled tests and recent release notes. The application source includes the 1.1.17 audit improvements
+over version 1.1.16. See RELEASE-1.1.16.txt for Smart Search, Check Price and
 retained search results when returning from a listing.
 
 START HERE
@@ -33,8 +35,8 @@ https://developer.android.com/build/releases/agp-8-7-0-release-notes
 SIGNING
 The original private signing key and password are deliberately NOT included.
 A debug build or a build signed with your own key cannot update the existing
-release installation in place. For side-by-side development, change only the
-applicationId to au.sutto.marketonly.dev before building; keep the namespace.
+release installation in place. Debug builds automatically use applicationId au.sutto.marketonly.dev
+and label MarketOnly Test; the production namespace remains unchanged.
 Updating the existing release requires the original private signing backup.
 Do not uninstall the existing app just to try a development build, because
 uninstalling removes its local session and listing history.
@@ -59,7 +61,7 @@ Build, substituting your SDK directories:
 
 The manual builder requires alias marketonly and the same key/store password.
 It checks the signature, ZIP alignment and uncompressed resource table.
-Its default output is dist/MarketOnly-1.1.16.apk. Without --key and the password
+Its default output is dist/MarketOnly-1.1.17.apk. Without --key and the password
 variable it expects the private signing backup, which is not in this archive.
 On Windows, prefer Android Studio; the Python builder assumes Unix tool names.
 
@@ -85,8 +87,8 @@ Simple standalone checks (JDK 17/Python 3/Node.js as applicable):
   node tests/guard_test.cjs
 
 Browser fixtures need the Playwright Node package and a Chromium installation.
-Some older fixtures refer to their original workspace/browser paths; adapt
-those paths to your machine. TEST_CHROME is accepted by many fixtures.
+Browser fixtures accept TEST_CHROME or use the browser installed by Playwright.
+The portable runner is python3 tests/run_checks.py --browser.
 SmartSearchTest.java additionally needs Android API classes and a working JVM
 org.json implementation; Android's stub android.jar alone cannot execute it.
 

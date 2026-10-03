@@ -19,10 +19,11 @@ Debug package: au.sutto.marketonly.dev; label: MarketOnly Test.
 It installs alongside the original app. Production updates still need the
 original private signing key, which is not present in the source archive.
 
-Local standalone routing/lifecycle/JavaScript checks passed. Browser checks
-and full Android compilation are run by GitHub Actions and must be reviewed
-before installing an artifact. Real Facebook and Android acceptance is not
-performed automatically; retain the user's working release for comparison.
+All 34 controlled check groups, 23 Smart Search/storage checks, Android
+compilation, APK signature verification and installer alignment/layout checks
+passed in GitHub Actions. See VERIFICATION-1.1.17.md for the exact run and APK
+checksum. Real Facebook and Android acceptance is not performed automatically;
+retain the user's working release for comparison.
 
 Audit concerns remaining: feed blocking uses known denied routes rather than
 an exhaustive Marketplace allowlist; overlapping DOM observers can perform
