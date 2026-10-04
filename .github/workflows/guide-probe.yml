@@ -15,12 +15,11 @@ jobs:
           python3 - <<'PY'
           import urllib.request, pathlib, json, concurrent.futures, re
           targets=[
-            ('redbook-group','https://www.redbookgroup.com/'),
-            ('carsales-business','https://business.carsales.com.au/'),
-            ('carsales-developer','https://developer.carsales.com.au/'),
-            ('redbook-nz','https://www.redbook.co.nz/'),
-            ('autograb-home','https://www.autograb.com.au/'),
-            ('autograb-docs','https://docs.autograb.com.au/')]
+            ('redbook-product','https://business.carsales.com.au/redbook/'),
+            ('redbook-nz-finance','https://www.redbook.co.nz/products/finance/'),
+            ('autograb-api','https://autograb.com.au/api-home/'),
+            ('autograb-docs','https://devhub.autograb.com/autograb-api-doc'),
+            ('autograb-faq','https://autograb.com.au/faq/')]
           def get(target):
             name,url=target
             try:
