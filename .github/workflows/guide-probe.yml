@@ -15,14 +15,12 @@ jobs:
           python3 - <<'PY'
           import urllib.request, pathlib, json, concurrent.futures, re
           targets=[
-            ('redbook-home','https://www.redbook.com.au/'),
-            ('redbook-industry','https://www.redbook.com.au/industry'),
-            ('redbook-corporate','https://www.redbook.com.au/corporate'),
-            ('redbook-business','https://www.redbook.com.au/business'),
-            ('redbook-robots','https://www.redbook.com.au/robots.txt'),
-            ('redbook-help','https://www.redbook.com.au/help'),
-            ('carsguide-about','https://www.carsguide.com.au/about-us'),
-            ('carsguide-contact','https://www.carsguide.com.au/contact-us')]
+            ('redbook-group','https://www.redbookgroup.com/'),
+            ('carsales-business','https://business.carsales.com.au/'),
+            ('carsales-developer','https://developer.carsales.com.au/'),
+            ('redbook-nz','https://www.redbook.co.nz/'),
+            ('autograb-home','https://www.autograb.com.au/'),
+            ('autograb-docs','https://docs.autograb.com.au/')]
           def get(target):
             name,url=target
             try:
@@ -32,7 +30,7 @@ jobs:
                 text=data.decode('utf-8',errors='replace')
                 links=sorted(set(re.findall(r'href=["\x27]([^"\x27]+)',text)))
                 hits=[p for p in re.findall(r'.{0,160}(?:API|api|data feed|business|Business|corporate|Corporate).{0,240}',text)][:30]
-                return {'name':name,'status':response.status,'url':response.url,'bytes':len(data),'links':[p for p in links if re.search('api|data|business|corporate|industry|contact',p,re.I)],'snippets':hits}
+                return {'name':name,'status':response.status,'url':response.url,'bytes':len(data),'links':[p for p in links if re.search('api|data|business|corporate|industry|contact|redbook|valuation|developer',p,re.I)],'snippets':hits}
             except Exception as e:return {'name':name,'url':url,'error':str(e)}
           with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:rows=list(pool.map(get,targets))
           pathlib.Path('guide-probe/results.json').write_text(json.dumps(rows,indent=2))
