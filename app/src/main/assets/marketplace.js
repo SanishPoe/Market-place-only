@@ -372,8 +372,8 @@
     if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
     paused=false;
     const mode=pathMode();
-    if(auth()||!mode){restore();resetContentTop();return;}
-    if(lastPath!==location.pathname){root.removeAttribute('data-mo-controls');resetContentTop();lastPath=location.pathname;}
+    if(auth()||!mode){dirtyCards.clear();restore();resetContentTop();return;}
+    if(lastPath!==location.pathname){gridDirty=true;root.removeAttribute('data-mo-controls');resetContentTop();lastPath=location.pathname;}
     mark(root,'data-mo-page',mode);
     globalNavigation();
     if(mode==='browse'){
@@ -384,7 +384,7 @@
       if(gridDirty||lastGridPath!==location.pathname){makeGrid();gridDirty=false;lastGridPath=location.pathname;}
       else for(const card of dirtyCards){const cached=captionCache.get(card);if(card.isConnected&&cached?.cell.isConnected)caption(card,cached.cell);}
       dirtyCards.clear();tidyControls();
-    }else resetCaptions();
+    }else {dirtyCards.clear();resetCaptions();}
     if(!root.hasAttribute('data-mo-controls'))compactPageTop();
     else resetContentTop();
   }

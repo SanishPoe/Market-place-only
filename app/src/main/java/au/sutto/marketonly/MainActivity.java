@@ -80,8 +80,9 @@ public final class MainActivity extends Activity {
     private PhotoViewer photoViewer;
     private String lastGoodUrl = UrlRules.MARKET;
     private boolean pageFailed;
-    private boolean documentCommitted, scriptsInjected, injectionPending;
+    private boolean documentCommitted, scriptsInjected, injectionPending, visualRevealPending;
     private long documentGeneration;
+    private String documentStartUrl;
     private int injectionAttempts;
     private final java.util.IdentityHashMap<WebView, Runnable> popupExpiry = new java.util.IdentityHashMap<>();
     private long lastMessengerLaunch;
@@ -228,7 +229,8 @@ public final class MainActivity extends Activity {
     }
 
     private void configureWebView() {
-        ++documentGeneration; documentCommitted = false; scriptsInjected = false; injectionPending = false; injectionAttempts = 0;
+        documentStartUrl = null;
+        ++documentGeneration; documentCommitted = false; scriptsInjected = false; injectionPending = false; visualRevealPending = false; injectionAttempts = 0;
         WebSettings s = web.getSettings();
         mobileAgent = WebSettings.getDefaultUserAgent(this).replace("; wv", "").replace("Version/4.0 ", "");
         Matcher version = Pattern.compile("Chrome/([0-9.]+)").matcher(mobileAgent);
@@ -446,11 +448,11 @@ public final class MainActivity extends Activity {
             return;
         }
         if (scriptsInjected) {
-            if (reveal) source.setVisibility(View.VISIBLE);
+            if (reveal) revealDocument(source, generation);
             return;
         }
         if (injectionPending) return;
-        if (injectionAttempts >= 2) { if (reveal) source.setVisibility(View.VISIBLE); return; }
+        if (injectionAttempts >= 2) { if (reveal) revealDocument(source, generation); return; }
         injectionPending = true; injectionAttempts++;
         // One renderer call installs all page features before revealing the new
         // document. SPA history keeps the existing page and observer installers.
@@ -467,10 +469,23 @@ public final class MainActivity extends Activity {
         source.evaluateJavascript(script, value -> {
             if (source != web || generation != documentGeneration || isFinishing() || isDestroyed() || signingOut) return;
             injectionPending = false; scriptsInjected = "true".equals(value);
-            source.setVisibility(View.VISIBLE);
+            revealDocument(source, generation);
         });
     }
 
+    private void revealDocument(WebView source, long generation) {
+        if (source != web || generation != documentGeneration || signingOut || isFinishing() || isDestroyed()
+                || source.getVisibility() == View.VISIBLE || visualRevealPending) return;
+        visualRevealPending = true;
+        // JavaScript completion precedes compositor updates. Reveal only after
+        // Android confirms the styled/ad-filtered document can be drawn.
+        source.postVisualStateCallback(generation, new WebView.VisualStateCallback() {
+            @Override public void onComplete(long requestId) {
+                if (source != web || generation != documentGeneration || signingOut || isFinishing() || isDestroyed()) return;
+                visualRevealPending = false; source.setVisibility(View.VISIBLE);
+            }
+        });
+    }
     private String installFeature(String feature, String script) {
         return "try{\n"+script+"\n;}catch(e){if(failures.indexOf("+JSONObject.quote(feature)+")<0)failures.push("+JSONObject.quote(feature)+");}\n";
     }
@@ -576,7 +591,8 @@ public final class MainActivity extends Activity {
         @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
             if(view!=web || signingOut)return;
             if (fileCallback != null && !java.util.Objects.equals(fileSourceUrl, url)) cancelFileSelection();
-            ++documentGeneration; documentCommitted = false; scriptsInjected = false; injectionPending = false; injectionAttempts = 0;
+            documentStartUrl = url;
+            ++documentGeneration; documentCommitted = false; scriptsInjected = false; injectionPending = false; visualRevealPending = false; injectionAttempts = 0;
             view.setVisibility(View.INVISIBLE);
             pageFailed = false; progress.setVisibility(View.VISIBLE);
             if (url != null && url.equals(refreshTarget)) refreshStarted = true;
@@ -587,12 +603,14 @@ public final class MainActivity extends Activity {
             updateTabs(url);
         }
         @Override public void onPageCommitVisible(WebView view, String url) {
-            if(view!=web || signingOut || !java.util.Objects.equals(url, view.getUrl()))return;
+            if(view!=web || signingOut || url == null
+                    || (!url.equals(view.getUrl()) && !url.equals(documentStartUrl)))return;
             if (blockedFeed(url)) { returnToMarket(); return; }
             documentCommitted = true; inject(true);
         }
         @Override public void onPageFinished(WebView view, String url) {
-            if(view!=web || signingOut || url == null || !url.equals(view.getUrl()))return;
+            if(view!=web || signingOut || url == null
+                    || (!url.equals(view.getUrl()) && !url.equals(documentStartUrl)))return;
             if (refreshLoadIssued && refreshView == view && !refreshStarted) return;
             if (refreshLoadIssued && refreshView == view && url.equals(refreshTarget)) {
                 if (refreshingExplore && UrlRules.marketplace(url) && !UrlRules.listing(url)) view.scrollTo(0, 0);
@@ -936,7 +954,8 @@ public final class MainActivity extends Activity {
         searchInput.setText(page.query);web.setLayoutParams(new FrameLayout.LayoutParams(-1,-1));web.setVisibility(View.VISIBLE);web.onResume();setWebActive(web, appResumed && smartScreen == null);
         lastGoodUrl=web.getUrl()==null?UrlRules.MARKET:web.getUrl();clearError();progress.setVisibility(View.INVISIBLE);
         if(smartScreen!=null){content.addView(smartScreen,new FrameLayout.LayoutParams(-1,-1));Object refresh=smartScreen.getTag();if(refresh instanceof Runnable)((Runnable)refresh).run();}
-        ++documentGeneration; documentCommitted = true; scriptsInjected = false; injectionPending = false; injectionAttempts = 0; inject();
+        documentStartUrl = web.getUrl();
+        ++documentGeneration; documentCommitted = true; scriptsInjected = false; injectionPending = false; visualRevealPending = false; injectionAttempts = 0; inject();
         updateTabs(lastGoodUrl);
     }
     private void discardRetained(){for(BrowsePage page:browsePages){content.removeView(page.view);page.view.destroy();}browsePages.clear();}

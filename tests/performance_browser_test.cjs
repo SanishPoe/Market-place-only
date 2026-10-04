@@ -123,6 +123,11 @@ async function nextPaint(page,read){
   assert.equal(await page.locator('html').getAttribute('data-mo-page'),'detail');
   await page.evaluate(()=>{history.pushState({},'', '/marketplace/you/saved/');});await page.waitForTimeout(240);
   assert.equal(await page.locator('html').getAttribute('data-mo-page'),'browse');
+  const savedCaptions=await page.locator('[data-mo-summary]').count();assert(savedCaptions>0);
+  await page.evaluate(()=>{history.pushState({},'', '/marketplace/create/item/');});await page.waitForTimeout(240);
+  assert.equal(await page.locator('[data-mo-summary]').count(),0);
+  await page.evaluate(()=>{history.pushState({},'', '/marketplace/you/saved/');});await page.waitForTimeout(240);
+  assert.equal(await page.locator('[data-mo-summary]').count(),savedCaptions,'Returning to the same browse URL must rebuild removed captions');
   assert.deepEqual(errors,[]);console.log('PASS: installed assets follow SPA Sell and Saved navigation without reinjection');
   measurements.virtualisation={before,after:await geometry()};
   fs.mkdirSync(path.join(base,'test-output'),{recursive:true});

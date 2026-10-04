@@ -45,8 +45,8 @@ public class RefreshLifecycleTest {
  static class Prefs {boolean getBoolean(String key,boolean fallback){return fallback;}}
  WebView web=new WebView();View progress=new View();Prefs prefs=new Prefs();String refreshSnapshotScript="snapshot";
  boolean signingOut,finishing,destroyed,pageFailed,refreshingExplore,refreshStarted,refreshRequestPending,refreshLoadIssued,refreshCacheBypass;
- boolean documentCommitted,scriptsInjected,injectionPending;long documentGeneration,refreshGeneration;
- String refreshTarget,refreshSourceUrl,lastGoodUrl,fileSourceUrl;Object fileCallback;
+ boolean documentCommitted,scriptsInjected,injectionPending,visualRevealPending;long documentGeneration,refreshGeneration;
+ String refreshTarget,refreshSourceUrl,lastGoodUrl,fileSourceUrl,documentStartUrl;Object fileCallback;
  WebView refreshView;JSONArray refreshBefore=new JSONArray();JSONObject refreshReport=new JSONObject();
  final ArrayList<Runnable> refreshTasks=new ArrayList<>();static final int REFRESH_WINDOW_MS=20000;
  int injections,errorsCleared,fileCancels,injectionAttempts;

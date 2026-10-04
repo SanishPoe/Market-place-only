@@ -33,7 +33,7 @@ public class SearchNavigationTest extends BaseNavigation {
  static class BrowsePage {WebView view;View panel;String query;BrowsePage(WebView v,View p,String q){view=v;panel=p;query=q;}}
  WebView web=new WebView(this);View smartScreen,fullScreenView,progress=new View();Input searchInput=new Input(),searchRow=new Input();Overlay photoViewer;
  Content content=new Content();SmartUi smartUi;ListingStore listingStore=new ListingStore();ArrayList<BrowsePage> browsePages=new ArrayList<>();
- long refreshGeneration,documentGeneration;String refreshTarget,lastGoodUrl;boolean refreshingExplore,signingOut,documentCommitted,scriptsInjected,injectionPending,appResumed=true;
+ long refreshGeneration,documentGeneration;String refreshTarget,lastGoodUrl,documentStartUrl;boolean refreshingExplore,signingOut,documentCommitted,scriptsInjected,injectionPending,visualRevealPending,appResumed=true;
  int injectionAttempts;int pickerCancels;void cancelFileSelection(){pickerCancels++;}void cancelRefreshWork(){refreshGeneration++;refreshTarget=null;refreshingExplore=false;}
  void setWebActive(WebView view,boolean value){view.active=value;}void inject(){}
  void captureListings(Runnable r){if(r!=null)r.run();}void configureWebView(){}void clearError(){}void updateTabs(String u){}

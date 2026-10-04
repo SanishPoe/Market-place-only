@@ -13,16 +13,19 @@ def body(signature):
 h=r'''package au.sutto.marketonly;
 import java.util.*;import java.util.function.Consumer;import java.nio.file.*;
 public class InjectionLifecycleTest {
- static class View {static final int VISIBLE=0,INVISIBLE=4;int visibility=INVISIBLE;void setVisibility(int v){visibility=v;}}
+ static class View {static final int VISIBLE=0,INVISIBLE=4;int visibility=INVISIBLE;void setVisibility(int v){visibility=v;}int getVisibility(){return visibility;}}
  static class WebView extends View {String url=UrlRules.MARKET;int scrolls;String script;List<Consumer<String>> pending=new ArrayList<>();
+  static abstract class VisualStateCallback {public abstract void onComplete(long id);}
+  List<VisualStateCallback> visual=new ArrayList<>();List<Long> visualIds=new ArrayList<>();
+  void postVisualStateCallback(long id,VisualStateCallback cb){visual.add(cb);visualIds.add(id);}void paint(){visual.remove(0).onComplete(visualIds.remove(0));}
   String getUrl(){return url;}void stopLoading(){}void scrollTo(int x,int y){scrolls++;}
   void evaluateJavascript(String js,Consumer<String> cb){script=js;if(cb!=null)pending.add(cb);}Consumer<String> callback(){return pending.remove(0);}}
  static class Prefs {boolean compact=true;boolean getBoolean(String k,boolean fallback){return "focused_layout".equals(k)?compact:fallback;}}
  static class JSONObject {static String quote(String s){return "\""+s+"\"";}}
  static class CookieManager {static CookieManager getInstance(){return new CookieManager();}void flush(){}}
  WebView web=new WebView(),refreshView;View progress=new View();Prefs prefs=new Prefs();Object smartScreen,fileCallback;
- boolean signingOut,documentCommitted=true,scriptsInjected,injectionPending,appResumed=true,refreshLoadIssued,refreshStarted,refreshingExplore,refreshRequestPending,pageFailed;
- long documentGeneration;int injectionAttempts;String refreshTarget,fileSourceUrl,lastGoodUrl;
+ boolean signingOut,documentCommitted=true,scriptsInjected,injectionPending,visualRevealPending,appResumed=true,refreshLoadIssued,refreshStarted,refreshingExplore,refreshRequestPending,pageFailed;
+ long documentGeneration;int injectionAttempts;String refreshTarget,fileSourceUrl,lastGoodUrl,documentStartUrl;
  String guardScript=feature("focus"),adScript=feature("adverts"),mediaScript=feature("media"),pullScript=feature("pull_refresh"),listingToolsScript=feature("listing_tools"),layoutScript=feature("layout"),detailScript=feature("detail");
  static String feature(String name){return "window.calls.push('"+name+"');";}
  boolean isFinishing(){return false;}boolean isDestroyed(){return false;}boolean signedIn(){return true;}
@@ -31,6 +34,7 @@ public class InjectionLifecycleTest {
  private void inject(){SHORT}
  private void inject(boolean reveal){INJECT}
  private String installFeature(String feature,String script){FEATURE}
+ private void revealDocument(WebView source,long generation){REVEAL}
  void onPageStarted(WebView view,String url){STARTED}
  void onPageCommitVisible(WebView view,String url){COMMIT}
  void onPageFinished(WebView view,String url){FINISH}
@@ -42,7 +46,9 @@ public class InjectionLifecycleTest {
   t.onPageCommitVisible(t.web,t.web.url);check(t.web.visibility==View.INVISIBLE&&t.web.pending.size()==1,"commit waits for consolidated installer before reveal");
   check(t.web.script.contains("focus")&&t.web.script.contains("detail")&&t.web.script.contains("listing_tools"),"all features included in consolidated call");
   Files.write(Paths.get(args[0],"success.js"),t.web.script.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-  t.web.callback().accept("true");check(t.scriptsInjected&&t.web.visibility==View.VISIBLE,"successful install reveals styled page");
+  t.web.callback().accept("true");check(t.scriptsInjected&&t.web.visibility==View.INVISIBLE&&t.web.visual.size()==1,"JavaScript completion waits for compositor readiness");
+  t.onPageFinished(t.web,t.web.url);check(t.web.visibility==View.INVISIBLE&&t.web.visual.size()==1,"finish cannot bypass or duplicate visual readiness wait");
+  t.web.paint();check(t.web.visibility==View.VISIBLE,"visual readiness reveals styled page");
   t.onPageFinished(t.web,t.web.url);check(t.web.pending.isEmpty()&&t.injectionAttempts==1,"finish does not repeat installed assets");
   t.web.url="https://www.facebook.com/marketplace/search/?query=car";t.doUpdateVisitedHistory(t.web,t.web.url,false);
   check(t.web.visibility==View.VISIBLE&&t.web.pending.isEmpty(),"SPA updates preserve page visibility without reinstalling");
@@ -53,7 +59,8 @@ public class InjectionLifecycleTest {
   check(!t.scriptsInjected&&t.web.visibility==View.INVISIBLE,"old injection completion cannot reveal a newer document");
   t.onPageFinished(t.web,"https://www.facebook.com/marketplace/item/1/");check(t.web.pending.isEmpty(),"old page finish cannot inject or reveal newer document");
   t.onPageCommitVisible(t.web,t.web.url);t.web.callback().accept("null");
-  check(!t.scriptsInjected&&t.web.visibility==View.VISIBLE,"failed installer is not falsely marked successful and cannot hold page blank");
+  check(!t.scriptsInjected&&t.web.visibility==View.INVISIBLE&&t.web.visual.size()==1,"partial feature installation also waits for styled compositor state");t.web.paint();
+  check(t.web.visibility==View.VISIBLE,"failed installer is not falsely marked successful and cannot hold page blank");
   t.onPageFinished(t.web,t.web.url);check(t.web.pending.size()==1&&t.injectionAttempts==2,"failed installer receives one bounded retry");
   t.web.callback().accept("false");t.inject(true);check(t.web.pending.isEmpty()&&t.injectionAttempts==2,"runtime failure cannot cause unbounded reinstall loop");
   t=new InjectionLifecycleTest();t.web.url="https://www.facebook.com/login/";t.onPageStarted(t.web,t.web.url);t.onPageCommitVisible(t.web,t.web.url);
@@ -63,10 +70,18 @@ public class InjectionLifecycleTest {
   t=new InjectionLifecycleTest();t.guardScript="throw new Error('fixture');";t.inject(true);
   Files.write(Paths.get(args[0],"failed.js"),t.web.script.getBytes(java.nio.charset.StandardCharsets.UTF_8));
   t=new InjectionLifecycleTest();t.prefs.compact=false;t.inject(true);check(!t.web.script.contains("calls.push('layout')")&&!t.web.script.contains("calls.push('detail')"),"compact toggle excludes both layout customizations");
+  t=new InjectionLifecycleTest();String initial=t.web.url;t.onPageStarted(t.web,initial);t.web.url="https://www.facebook.com/marketplace/brisbane/?radius=10";t.doUpdateVisitedHistory(t.web,t.web.url,false);
+  t.onPageCommitVisible(t.web,initial);check(t.web.pending.size()==1,"SPA route change before commit still installs the new document");
+  t.web.callback().accept("true");t.web.paint();t.onPageFinished(t.web,initial);check(t.web.visibility==View.VISIBLE&&t.scriptsInjected,"original main-frame callback reveals document after same-document route changes");
+  String prior=initial;t.onPageStarted(t.web,t.web.url);t.onPageCommitVisible(t.web,prior);t.onPageFinished(t.web,prior);
+  check(t.web.pending.isEmpty()&&t.web.visibility==View.INVISIBLE,"start URL guard still rejects callbacks from previous different document");
+  t=new InjectionLifecycleTest();t.inject(true);t.web.callback().accept("true");t.onPageStarted(t.web,t.web.url);t.web.paint();
+  check(t.web.visibility==View.INVISIBLE,"stale compositor callback cannot reveal a newer document");
+  t=new InjectionLifecycleTest();t.inject(true);t.web.callback().accept("true");t.signingOut=true;t.web.paint();check(t.web.visibility==View.INVISIBLE,"signout rejects pending compositor reveal");
   System.out.println("PASS: "+checks+" actual document injection/visibility checks (renderer fakes)");
  }
 }'''
-for key,signature in [('SHORT','private void inject()'),('INJECT','private void inject(boolean reveal)'),('FEATURE','private String installFeature('),('STARTED','void onPageStarted('),('COMMIT','void onPageCommitVisible('),('FINISH','void onPageFinished('),('HISTORY','void doUpdateVisitedHistory(')]:
+for key,signature in [('SHORT','private void inject()'),('INJECT','private void inject(boolean reveal)'),('FEATURE','private String installFeature('),('REVEAL','private void revealDocument('),('STARTED','void onPageStarted('),('COMMIT','void onPageCommitVisible('),('FINISH','void onPageFinished('),('HISTORY','void doUpdateVisitedHistory(')]:
  h=h.replace(key,body(signature))
 node=r'''const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const dir=process.argv[1];let events=0;const c={calls:[],Event:function(){},dispatchEvent(){events++}};c.window=c;

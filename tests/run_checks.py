@@ -12,8 +12,14 @@ results = []
 
 def run(label, command):
     started = time.monotonic()
-    result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True, timeout=240)
+    try:
+        result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True, timeout=240)
+    except subprocess.TimeoutExpired as error:
+        captured = error.stdout or ''
+        if isinstance(captured, bytes):
+            captured = captured.decode('utf-8', errors='replace')
+        result = subprocess.CompletedProcess(command, 124, captured + '\nTimed out after 240 seconds.\n')
     (output / (label + '.log')).write_text(result.stdout)
     results.append({'name':label, 'passed':result.returncode == 0,
                     'seconds':round(time.monotonic() - started, 2)})
