@@ -6,15 +6,15 @@ android {
         applicationId 'au.sutto.marketonly'
         minSdk 26
         targetSdk 35
-        versionCode 20
-        versionName '1.1.17'
+        versionCode 21
+        versionName '1.1.18'
     }
     compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
     buildTypes {
         debug {
-            applicationIdSuffix '.dev'
+            applicationIdSuffix '.tuned'
             versionNameSuffix '-test'
-            resValue 'string', 'app_name', 'MarketOnly Test'
+            resValue 'string', 'app_name', 'MarketOnly Tuned'
         }
     }
 }

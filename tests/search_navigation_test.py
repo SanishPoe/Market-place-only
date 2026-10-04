@@ -22,7 +22,7 @@ import java.util.*;
 class BaseNavigation {int exits;public void onBackPressed(){exits++;}}
 public class SearchNavigationTest extends BaseNavigation {
  static class View {static final int VISIBLE=0,INVISIBLE=4,GONE=8;int visibility=GONE;Object tag;void setVisibility(int v){visibility=v;}int getVisibility(){return visibility;}Object getTag(){return tag;}}
- static class WebView extends View {String url;int loads,backCalls;boolean paused,destroyed,history;int scroll=1400;String[] results={"1","2","3"};
+ static class WebView extends View {String url;int loads,backCalls;boolean paused,destroyed,history,active=true;int scroll=1400;String[] results={"1","2","3"};
   WebView(Object a){}String getUrl(){return url;}boolean canGoBack(){return history;}void goBack(){backCalls++;}void onPause(){paused=true;}void onResume(){paused=false;}void stopLoading(){}void destroy(){destroyed=true;}int getHeight(){return 600;}void setLayoutParams(Object o){} }
  static class FrameLayout {static class LayoutParams{LayoutParams(int x,int y){}}}
  static class Content {void addView(Object v,Object p){}void removeView(Object v){}}
@@ -33,7 +33,9 @@ public class SearchNavigationTest extends BaseNavigation {
  static class BrowsePage {WebView view;View panel;String query;BrowsePage(WebView v,View p,String q){view=v;panel=p;query=q;}}
  WebView web=new WebView(this);View smartScreen,fullScreenView,progress=new View();Input searchInput=new Input(),searchRow=new Input();Overlay photoViewer;
  Content content=new Content();SmartUi smartUi;ListingStore listingStore=new ListingStore();ArrayList<BrowsePage> browsePages=new ArrayList<>();
- long refreshGeneration;String refreshTarget,lastGoodUrl;boolean refreshingExplore;
+ long refreshGeneration,documentGeneration;String refreshTarget,lastGoodUrl;boolean refreshingExplore,signingOut,documentCommitted,scriptsInjected,injectionPending,appResumed=true;
+ int injectionAttempts;int pickerCancels;void cancelFileSelection(){pickerCancels++;}void cancelRefreshWork(){refreshGeneration++;refreshTarget=null;refreshingExplore=false;}
+ void setWebActive(WebView view,boolean value){view.active=value;}void inject(){}
  void captureListings(Runnable r){if(r!=null)r.run();}void configureWebView(){}void clearError(){}void updateTabs(String u){}
  void closeSmart(){smartScreen=null;}void hideSearch(){searchRow.visibility=View.GONE;}void closeFullscreen(){fullScreenView=null;}
  void load(String u){web.url=u;web.loads++;}
@@ -45,9 +47,9 @@ public class SearchNavigationTest extends BaseNavigation {
   SearchNavigationTest t=new SearchNavigationTest();WebView search=t.web;search.url="https://www.facebook.com/marketplace/search/?query=Holden%20Cruze&minPrice=1000";
   String url=search.url;String[] results=search.results;
   t.openRetained("https://www.facebook.com/marketplace/item/1/");WebView detail=t.web;
-  check(t.browsePages.size()==1&&search.paused&&search.loads==0,"opening listing must keep original search alive");
+  check(t.browsePages.size()==1&&search.paused&&!search.active&&search.loads==0,"opening listing must keep original search alive");
   detail.history=true;t.navigateBack();
-  check(t.web==search&&!search.destroyed&&detail.destroyed,"Back must restore same results WebView even if listing has internal history");
+  check(t.web==search&&!search.destroyed&&detail.destroyed&&search.active,"Back must restore same results WebView even if listing has internal history");
   check(url.equals(t.web.url)&&t.web.scroll==1400&&t.web.results==results&&t.web.loads==0,"query/filter URL, scroll and loaded results retained without reload");
   check(t.searchInput.value.equals("Holden Cruze"),"search text retained");
   View panel=new View();int[] rendered={0};panel.tag=(Runnable)()->rendered[0]++;t.smartScreen=panel;
@@ -59,6 +61,8 @@ public class SearchNavigationTest extends BaseNavigation {
   t.photoViewer=new Overlay();t.photoViewer.showing=true;t.navigateBack();check(!t.photoViewer.showing&&t.web==search,"photo Back does not navigate page");
   t.searchRow.visibility=View.VISIBLE;t.navigateBack();check(t.searchRow.visibility==View.GONE&&t.web==search,"keyboard/search row Back preserves results");
   t.openRetained("https://evil.test/marketplace/item/1/");check(t.web==search&&t.browsePages.isEmpty(),"untrusted retained destination rejected");
+  int cancellations=t.pickerCancels;t.openRetained("https://www.facebook.com/marketplace/item/88/");t.navigateBack();check(t.pickerCancels==cancellations+2,"pending file chooser cancelled on retained transitions");
+  t.signingOut=true;t.openRetained("https://www.facebook.com/marketplace/item/89/");check(t.web==search&&t.browsePages.isEmpty(),"signout freezes retained navigation");
   System.out.println("PASS: retained search/query/results/scroll, repeated links, nested pages, Smart panel and Back controls (stateful WebView fakes)");
  }
 }'''.replace('OPEN',method('openRetained')).replace('RESTORE',method('restoreRetained')).replace('BACK',method('navigateBack'))

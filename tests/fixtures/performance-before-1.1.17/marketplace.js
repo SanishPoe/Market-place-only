@@ -8,9 +8,7 @@
   const auth=()=>/^\/(login|checkpoint|two_step|recover|confirm|auth|security|device|dialog|reg|r\.php|consent)/.test(location.pathname)||!!document.querySelector('input[type="password"],form[action*="login"]');
   const price=s=>/^(?:(?:A|AU|US|NZ)?\$\s*[\d,.]+|Free)(?:\s|$)/i.test(s);
   const clean=s=>(s||'').replace(/\s+/g,' ').trim();
-  let scheduled=false, frame=0, lastPath='', tracking=null, paused=false,captionGeneration=0,gridDirty=true,lastGridPath='';
-  const dirtyCards=new Set();
-  const captionCache=new WeakMap(), captionDirty=new WeakSet();
+  let scheduled=false, lastPath='', tracking=null;
   const headerOffsetSources=new WeakMap();
   const layoutAttributes=['data-mo-grid','data-mo-cell','data-mo-chain','data-mo-frame','data-mo-card','data-mo-orphan','data-mo-photo','data-mo-image','data-mo-photo-layer','data-mo-ad','data-mo-ad-media','data-mo-ad-image','data-mo-ad-layer','data-mo-ad-row','data-mo-ad-single'];
   const style=document.createElement('style');style.id='marketonly-layout';style.textContent=window.__marketOnlyCss||'';(document.head||root).appendChild(style);
@@ -179,13 +177,6 @@
     }
   }
   function caption(a,cell=a){
-    // Most Facebook mutations are pagination/virtualisation updates elsewhere.
-    // Reuse a caption until its own source changes; never cache a recycled card
-    // by item ID because React can change its text without replacing the node.
-    const cached=captionCache.get(a);
-    if(cached&&cached.generation===captionGeneration&&cached.cell===cell&&cached.href===a.getAttribute('href')&&!captionDirty.has(a)
-      &&cached.summary?.isConnected&&a.contains(cached.summary))return;
-    captionDirty.delete(a);
     const texts=[],walker=document.createTreeWalker(cell,NodeFilter.SHOW_TEXT);
     while(walker.nextNode()){
       const node=walker.currentNode.parentElement,text=clean(walker.currentNode.textContent);
@@ -230,7 +221,6 @@
       }
       mark(block,'data-mo-original-caption');
     }
-    captionCache.set(a,{cell,href:a.getAttribute('href'),summary,generation:captionGeneration});
   }
   function picture(a){
     const img=a.querySelector('img');if(!img)return;
@@ -308,25 +298,21 @@
       if(!branches.length)continue;
       groups.push({parent,branches});
     }
-    const covered=new Set(), adAncestors=new Map();
-    for(const ad of ads)for(let p=ad;p&&p!==document.body;p=p.parentElement){if(!adAncestors.has(p))adAncestors.set(p,ad);}
+    const cells=new Set();
     for(const{parent,branches}of groups){
       mark(parent,'data-mo-grid');
       const parentStyle=getComputedStyle(parent);
-      // A virtualised collection's explicit height is its scroll spacer. An ad
-      // beside absolute result rows must not turn that spacer into height:auto.
-      const virtualChildren=[...parent.children].some(c=>ids.get(c)?.size>1&&/absolute|fixed/.test(getComputedStyle(c).position));
       if(!parent.matches('main,[role="main"]')&&!/auto|scroll/.test(parentStyle.overflowY)
-        &&!/absolute|fixed/.test(parentStyle.position)&&!virtualChildren&&adAncestors.has(parent))mark(parent,'data-mo-ad-row');
+        &&!/absolute|fixed/.test(parentStyle.position)&&[...ads].some(ad=>parent.contains(ad)))mark(parent,'data-mo-ad-row');
       for(const cell of branches){
-        mark(cell,'data-mo-cell');
-        const ad=adAncestors.get(cell);
+        mark(cell,'data-mo-cell');cells.add(cell);
+        const ad=[...ads].find(ad=>cell===ad||cell.contains(ad));
         if(ad){
           for(let chain=ad.parentElement;chain&&chain!==cell&&chain!==parent;chain=chain.parentElement)mark(chain,'data-mo-chain');
           continue;
         }
         const card=cell.matches('a[href*="/marketplace/item/"]')?cell:[...cell.querySelectorAll('a[href*="/marketplace/item/"]')].find(a=>a.querySelector('img'));
-        if(!card)continue;mark(card,'data-mo-card');covered.add(card);
+        if(!card)continue;mark(card,'data-mo-card');
         for(let chain=card.parentElement;chain&&chain!==cell&&chain!==parent;chain=chain.parentElement)mark(chain,'data-mo-chain');
         caption(card,cell);
       }
@@ -348,11 +334,11 @@
       }
     }
     for(const card of anchors){
-      if(covered.has(card))continue;
+      if([...cells].some(cell=>cell===card||cell.contains(card)))continue;
       let cell=card;
       while(cell.parentElement&&cell.parentElement!==document.body){
         const p=cell.parentElement;
-        if(p.matches('main,[role="main"],[role="dialog"]')||ids.get(p)?.size!==1||adAncestors.has(p))break;
+        if(p.matches('main,[role="main"],[role="dialog"]')||ids.get(p)?.size!==1||[...ads].some(ad=>p===ad||p.contains(ad)))break;
         cell=p;
       }
       mark(cell,'data-mo-orphan');
@@ -368,9 +354,7 @@
     return groups.length;
   }
   function sweep(){
-    cancelAnimationFrame(frame);frame=0;scheduled=false;
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    paused=false;
+    scheduled=false;
     const mode=pathMode();
     if(auth()||!mode){restore();resetContentTop();return;}
     if(lastPath!==location.pathname){root.removeAttribute('data-mo-controls');resetContentTop();lastPath=location.pathname;}
@@ -381,40 +365,13 @@
       let viewport=document.querySelector('meta[name="viewport"]');
       if(!viewport){viewport=document.createElement('meta');viewport.name='viewport';(document.head||root).appendChild(viewport);}
       if(viewport.content!=='width=device-width, initial-scale=1')viewport.content='width=device-width, initial-scale=1';
-      if(gridDirty||lastGridPath!==location.pathname){makeGrid();gridDirty=false;lastGridPath=location.pathname;}
-      else for(const card of dirtyCards){const cached=captionCache.get(card);if(card.isConnected&&cached?.cell.isConnected)caption(card,cached.cell);}
-      dirtyCards.clear();tidyControls();
+      makeGrid();tidyControls();
     }else resetCaptions();
     if(!root.hasAttribute('data-mo-controls'))compactPageTop();
     else resetContentTop();
   }
-  const generated=node=>{const e=node?.nodeType===1?node:node?.parentElement;return !!e?.closest('[data-mo-summary],[data-mo-detail-generated-description],style[id^="marketonly"]');};
-  const withoutMotion=s=>(s||'').replace(/(?:^|;)\s*(?:transform|top|left)\s*:[^;]*(?=;|$)/gi,'').replace(/\s+/g,'');
-  const motionOnly=r=>r.type==='attributes'&&r.attributeName==='style'&&r.target.closest('[data-mo-grid]')
-    &&withoutMotion(r.oldValue)===withoutMotion(r.target.getAttribute('style'));
-  function changed(records){
-    if(document.hidden||window.__marketOnlyActive===false){captionGeneration++;gridDirty=true;paused=true;return;}
-    const external=records.filter(r=>!generated(r.target)&&!(r.type==='childList'&&[...r.addedNodes,...r.removedNodes].length&&[...r.addedNodes,...r.removedNodes].every(generated))
-      &&!motionOnly(r)&&!((r.type==='characterData'||r.type==='attributes')&&(r.target.nodeType===1?r.target:r.target.parentElement)?.closest('[role="status"],[role="progressbar"]')));
-    if(!external.length)return;
-    for(const r of external){
-      const e=r.target.nodeType===1?r.target:r.target.parentElement;
-      const card=e?.closest('a[href*="/marketplace/item/"]');if(card){captionDirty.add(card);dirtyCards.add(card);}
-      // Captions may be siblings of the photo anchor inside a cell.
-      const cell=e?.closest('[data-mo-cell],[data-mo-orphan]');
-      if(cell)cell.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a=>{captionDirty.add(a);dirtyCards.add(a);});
-      // CSS/source changes on an ancestor can alter the current-price styling.
-      if(e&&r.type==='attributes'&&!card&&!cell)e.querySelectorAll('a[href*="/marketplace/item/"]').forEach(a=>{captionDirty.add(a);dirtyCards.add(a);});
-      if(r.type==='childList'||(r.type==='attributes'&&(r.attributeName==='href'||(!card&&!cell))))gridDirty=true;
-    }
-    schedule();
-  }
-  function schedule(){
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    if(!scheduled){scheduled=true;frame=requestAnimationFrame(sweep);}
-  }
-  function activity(){if(document.hidden||window.__marketOnlyActive===false){cancelAnimationFrame(frame);frame=0;scheduled=false;paused=true;}else if(paused)schedule();}
-  window.__marketOnlyLayout=function(full=true){if(full)gridDirty=true;sweep();};
+  function schedule(){if(!scheduled){scheduled=true;setTimeout(sweep,160);}}
+  window.__marketOnlyLayout=sweep;
   // User-initiated diagnostics: dimensions and CSS only. No page text, URLs,
   // listing IDs, photos, cookies, input values or account details are included.
   window.__marketOnlyLayoutReport=function(){
@@ -466,8 +423,6 @@
     return false;
   };
   addEventListener('popstate',schedule);
-  addEventListener('marketonly:navigation',schedule);
-  addEventListener('marketonly:activity',activity);document.addEventListener('visibilitychange',activity);
-  new MutationObserver(changed).observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeOldValue:true,attributeFilter:['class','style','href','src','aria-label']});
+  new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','href','src','aria-label']});
   sweep();
 })();

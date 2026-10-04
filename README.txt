@@ -1,14 +1,14 @@
-For the current 1.1.17 audit fixes and side-by-side test installation, see README.md and RELEASE-1.1.17.txt.
+For the current 1.1.18 audit fixes and side-by-side test installation, see README.md and RELEASE-1.1.18.txt.
 
-MarketOnly 1.1.17 - Source project
+MarketOnly 1.1.18 - Source project
 =================================
-Version code: 20
+Version code: 21
 Android package: au.sutto.marketonly
 Minimum Android: 8.0 (API 26)
 Compile/target SDK: 35
 
 This ZIP contains the complete application source, resources, build scripts,
-controlled tests and recent release notes. The application source includes the 1.1.17 audit improvements
+controlled tests and recent release notes. The application source includes the 1.1.18 audit improvements
 over version 1.1.16. See RELEASE-1.1.16.txt for Smart Search, Check Price and
 retained search results when returning from a listing.
 
@@ -35,8 +35,8 @@ https://developer.android.com/build/releases/agp-8-7-0-release-notes
 SIGNING
 The original private signing key and password are deliberately NOT included.
 A debug build or a build signed with your own key cannot update the existing
-release installation in place. Debug builds automatically use applicationId au.sutto.marketonly.dev
-and label MarketOnly Test; the production namespace remains unchanged.
+release installation in place. Debug builds automatically use applicationId au.sutto.marketonly.tuned
+and label MarketOnly Tuned; the production namespace remains unchanged.
 Updating the existing release requires the original private signing backup.
 Do not uninstall the existing app just to try a development build, because
 uninstalling removes its local session and listing history.
@@ -61,7 +61,7 @@ Build, substituting your SDK directories:
 
 The manual builder requires alias marketonly and the same key/store password.
 It checks the signature, ZIP alignment and uncompressed resource table.
-Its default output is dist/MarketOnly-1.1.17.apk. Without --key and the password
+Its default output is dist/MarketOnly-1.1.18.apk. Without --key and the password
 variable it expects the private signing backup, which is not in this archive.
 On Windows, prefer Android Studio; the Python builder assumes Unix tool names.
 
@@ -76,9 +76,9 @@ RELEASE-1.1.16.txt                    - Latest changes and validation limits
 
 TESTS
 These are standalone controlled tests, not an Android instrumentation suite.
-They do not prove real-device or signed-in Facebook behaviour. Version 1.1.16
-was compiled and checked with controlled fixtures; its phone acceptance is
-still pending. No build was rerun merely to package this source ZIP.
+They do not prove real-device or signed-in Facebook behaviour. See
+VERIFICATION-1.1.18.md for the completed build evidence and
+FEATURE-AUDIT-1.1.18.md for features and device acceptance limits.
 
 Simple standalone checks (JDK 17/Python 3/Node.js as applicable):
   python3 tests/search_navigation_test.py

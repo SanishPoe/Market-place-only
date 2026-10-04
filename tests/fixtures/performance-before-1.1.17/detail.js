@@ -4,7 +4,7 @@
   if(window.__marketOnlyDetailLayout){window.__marketOnlyDetailLayout();return;}
   const root=document.documentElement,clean=s=>(s||'').replace(/\s+/g,' ').trim();
   const attrs=['data-mo-detail-stack','data-mo-detail-pass','data-mo-detail-order','data-mo-detail-part','data-mo-detail-padding','data-mo-detail-margin','data-mo-detail-offset','data-mo-detail-spacer','data-mo-detail-fullframe','data-mo-detail-map','data-mo-detail-map-inset','data-mo-detail-inset','data-mo-detail-location-flow','data-mo-detail-location-label','data-mo-detail-divider'];
-  const sourceStyles=new WeakMap();let seen,generatedUsed=null,scheduled=false,timer=0,paused=false,wasActive=false;
+  const sourceStyles=new WeakMap();let seen,generatedUsed=null,scheduled=false;
   const active=()=>/^\/marketplace\/item\/[^/]+\/?$/.test(location.pathname)&&!document.querySelector('input[type="password"],form[action*="login"]');
   const shown=e=>getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden'&&e.getBoundingClientRect().width>0;
   const style=document.createElement('style');style.id='marketonly-detail';
@@ -233,13 +233,8 @@ html[data-mo-detail] [data-mo-detail-fullframe]{top:0!important;bottom:0!importa
     }
   }
   function sweep(){
-    clearTimeout(timer);timer=0;scheduled=false;
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    paused=false;
-    const enabled=active();
-    if(!enabled&&!wasActive)return;
-    wasActive=enabled;generatedUsed=null;seen=new Map(attrs.map(a=>[a,new Set()]));
-    if(enabled){
+    scheduled=false;generatedUsed=null;seen=new Map(attrs.map(a=>[a,new Set()]));
+    if(active()){
       root.setAttribute('data-mo-detail','');
       const hero=[...document.querySelectorAll('img[data-mo-enlarge],main img,[role="main"] img,[role="dialog"] img')].find(e=>{
         const r=e.getBoundingClientRect();return r.width*r.height>=16000&&shown(e)&&!e.closest('form,[data-mo-ad-hidden],a[href*="/marketplace/item/"]')&&!/profile|avatar/i.test(e.alt||'')&&!getComputedStyle(e).filter.includes('blur');
@@ -250,18 +245,9 @@ html[data-mo-detail] [data-mo-detail-fullframe]{top:0!important;bottom:0!importa
     document.querySelectorAll('[data-mo-detail-generated-description]').forEach(e=>{if(e!==generatedUsed)e.remove();});
     for(const attr of attrs)document.querySelectorAll('['+attr+']').forEach(e=>{if(!seen.get(attr).has(e))e.removeAttribute(attr);});
   }
-  const generated=node=>{const e=node?.nodeType===1?node:node?.parentElement;return !!e?.closest('[data-mo-summary],[data-mo-detail-generated-description],style[id^="marketonly"]');};
-  function changed(records){
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    if(records.some(r=>!generated(r.target)&&!(r.type==='childList'&&[...r.addedNodes,...r.removedNodes].length&&[...r.addedNodes,...r.removedNodes].every(generated))
-      &&!((r.type==='characterData'||r.type==='attributes')&&(r.target.nodeType===1?r.target:r.target.parentElement)?.closest('[role="status"],[role="progressbar"]'))))schedule();
-  }
-  function schedule(){if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}if(!scheduled){scheduled=true;timer=setTimeout(sweep,160);}}
-  function activity(){if(document.hidden||window.__marketOnlyActive===false){clearTimeout(timer);timer=0;scheduled=false;paused=true;}else if(paused)schedule();}
+  function schedule(){if(!scheduled){scheduled=true;setTimeout(sweep,160);}}
   window.__marketOnlyDetailLayout=sweep;
-  addEventListener('marketonly:activity',activity);document.addEventListener('visibilitychange',activity);
-  new MutationObserver(changed).observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','src','aria-label']});
+  new MutationObserver(schedule).observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','src','aria-label']});
   addEventListener('popstate',schedule);addEventListener('resize',schedule);document.addEventListener('load',schedule,true);
-  addEventListener('marketonly:navigation',schedule);
   sweep();
 })();

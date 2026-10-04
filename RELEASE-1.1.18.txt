@@ -1,0 +1,30 @@
+MarketOnly 1.1.18 tuning and feature audit
+Version code: 21
+
+Refresh: bounded cache bypass instead of leaving caching disabled; no resource
+cache wipe; duplicate request suppression; snapshot timeout; preserve browse
+URL and filters; cancel work on navigation; reject old renderer callbacks.
+Facebook remains responsible for which recommended listings are returned.
+
+Scrolling: coordinated paint-frame ad and layout updates, fewer duplicate
+scans, unchanged caption extraction reuse, ignored app/status mutations,
+retained/background observer suppression, native document reveal after page
+features are installed, preservation of virtualised row heights/transforms.
+
+Features: scope picker results to their requesting renderer/page; reject late
+or inactive callbacks; destroy old browser renderers before asynchronous
+sign-out cookie clearing; explicitly choose browsers for browser-menu action;
+retain listings, saves, selling, filters, photos, maps, Messenger, incoming
+links, Smart Search and asking-price comparison. Matching patterns and query
+work are reused without changing Smart Search semantics.
+
+Installer: MarketOnly-1.1.18-tuned.apk, au.sutto.marketonly.tuned,
+label MarketOnly Tuned, manifest version 1.1.18-test. Installs separately;
+original release signing key is absent. Facebook login is separate.
+
+Tests: actual extracted native methods with stateful fakes; controlled DOM
+fixtures including virtualised rows, recycled nodes and first-frame updates;
+before/after work-count comparison; local search and persisted catalogue;
+Android compilation and signature/alignment/archive/resource validation.
+Final results and checksum are recorded in VERIFICATION-1.1.18.md.
+These are controlled checks, not S21 Ultra or authenticated Facebook testing.

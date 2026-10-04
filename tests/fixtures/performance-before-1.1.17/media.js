@@ -13,9 +13,8 @@
     return u&&u.protocol==='https:'&&!u.username&&!u.password&&(!u.port||u.port==='443')
       &&/(^|\.)(fbcdn\.net|fbsbx\.com|facebook\.com)$/i.test(u.hostname)?u.href:null;
   }
-  function largePhoto(img,isDetail){
-    if(typeof isDetail!=='boolean')isDetail=detail();
-    if(!isDetail||!img||img.tagName!=='IMG'||img.closest('form,[data-mo-float-chat],[data-mo-detail-map]'))return false;
+  function largePhoto(img){
+    if(!detail()||!img||img.tagName!=='IMG'||img.closest('form,[data-mo-float-chat],[data-mo-detail-map]'))return false;
     const link=img.closest('a[href]'),u=link&&parse(link.getAttribute('href'));
     if(u&&/\/marketplace\/item\//.test(u.pathname)&&u.pathname.replace(/\/$/,'')!==location.pathname.replace(/\/$/,''))return false;
     if(/profile (?:picture|photo)|avatar|\bmap\b/i.test(img.alt||''))return false;
@@ -119,20 +118,17 @@
   const style=document.createElement('style');style.id='marketonly-media';
   style.textContent='[data-mo-float-chat]{display:none!important}[data-mo-enlarge]{cursor:zoom-in!important}[data-mo-swipe-surface]{touch-action:pan-y pinch-zoom!important}';
   (document.head||root).appendChild(style);
-  let scheduled=false,timer=0,paused=false;
+  let scheduled=false;
   function sweep(){
-    clearTimeout(timer);timer=0;scheduled=false;
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    paused=false;
+    scheduled=false;
     const hidden=new Set(),photos=new Set(),surfaces=new Set();
     if(active()){
       document.querySelectorAll('button,[role="button"],a[aria-label]').forEach(e=>{if(floatingChat(e))hidden.add(e)});
-      if(detail())document.querySelectorAll('img').forEach(e=>{if(largePhoto(e,true))photos.add(e)});
+      if(detail())document.querySelectorAll('img').forEach(e=>{if(largePhoto(e))photos.add(e)});
       for(const img of photos){
-        const height=img.getBoundingClientRect().height;
         surfaces.add(img);
         for(let p=img.parentElement;p&&p!==document.body&&!p.matches('main,[role="main"]');p=p.parentElement){
-          if(p.getBoundingClientRect().height>height+16)break;
+          if(p.getBoundingClientRect().height>img.getBoundingClientRect().height+16)break;
           surfaces.add(p);
         }
       }
@@ -179,18 +175,9 @@
     chosenPhoto=img;
     event.preventDefault();event.stopImmediatePropagation();window.__marketOnlyOpenPhoto(imageUrl(img));
   },true);
-  const generated=node=>{const e=node?.nodeType===1?node:node?.parentElement;return !!e?.closest('[data-mo-summary],[data-mo-detail-generated-description],style[id^="marketonly"]');};
-  function changed(records){
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    if(records.some(r=>!generated(r.target)&&!(r.type==='childList'&&[...r.addedNodes,...r.removedNodes].length&&[...r.addedNodes,...r.removedNodes].every(generated))
-      &&!(r.type==='attributes'&&(r.target.nodeType===1?r.target:r.target.parentElement)?.closest('[role="status"],[role="progressbar"]'))))schedule();
-  }
-  function schedule(){if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}if(!scheduled){scheduled=true;timer=setTimeout(sweep,140)}}
-  function activity(){if(document.hidden||window.__marketOnlyActive===false){clearTimeout(timer);timer=0;scheduled=false;paused=true;touch=null;pending=null;}else if(paused)schedule();}
+  function schedule(){if(!scheduled){scheduled=true;setTimeout(sweep,140)}}
   window.__marketOnlyMediaSweep=sweep;
-  addEventListener('marketonly:activity',activity);document.addEventListener('visibilitychange',activity);
-  new MutationObserver(changed).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','aria-label','title','src','srcset','href','data-mo-detail-map']});
+  new MutationObserver(schedule).observe(root,{subtree:true,childList:true,attributes:true,attributeFilter:['class','style','aria-label','title','src','srcset','href','data-mo-detail-map']});
   addEventListener('resize',schedule);addEventListener('popstate',schedule);document.addEventListener('load',schedule,true);
-  addEventListener('marketonly:navigation',()=>{chosenPhoto=null;chosenThumb=null;pending=null;touch=null;schedule();});
   sweep();
 })();

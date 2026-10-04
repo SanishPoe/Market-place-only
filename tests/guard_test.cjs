@@ -20,7 +20,8 @@ function fixture(href, {password=false, links=[], dialogLinks=[]}={}) {
     },createElement(){return{}}, addEventListener(k,fn){events[k]=fn}};
   const history={pushState(){},replaceState(){}};
   const context={location,document,history,URL,Date,encodeURIComponent,
-    setTimeout(fn){timers.push(fn)},addEventListener(k,fn){events[k]=fn},
+    setTimeout(fn){timers.push(fn);return timers.length},clearTimeout(){},
+    Event:class{constructor(type){this.type=type}},dispatchEvent(e){events[e.type]?.(e)},addEventListener(k,fn){events[k]=fn},
     MutationObserver:class{observe(){}}};
   context.window=context;vm.createContext(context);vm.runInContext(script,context);
   return {context,location,document,events,anchors,redirects,timers};
@@ -54,6 +55,19 @@ test('authentication restores focus-hidden nodes without changing their inline s
 });
 test('SPA navigation to feed is blocked',()=>{
   const f=fixture('https://www.facebook.com/marketplace/'); f.context.history.pushState(null,'','/watch/');assert.equal(f.redirects.length,1);
+});
+test('allowed SPA navigation notifies other installed Marketplace features',()=>{
+  const f=fixture('https://www.facebook.com/marketplace/');let notified=0;
+  f.context.addEventListener('marketonly:navigation',()=>notified++);
+  f.context.history.pushState(null,'','/marketplace/you/saved/');assert.equal(notified,1);
+});
+test('retained background views defer sweeps until activity resumes',()=>{
+  const f=fixture('https://www.facebook.com/marketplace/',{links:['https://www.facebook.com/reels/']});
+  const a=f.anchors[0];f.context.__marketOnlyActive=false;f.events['marketonly:activity']();
+  a.href='https://www.facebook.com/marketplace/item/88/';f.context.__marketOnlySweep();
+  assert(a.hasAttribute('data-mo-focus-hidden'));
+  f.context.__marketOnlyActive=true;f.events['marketonly:activity']();f.context.__marketOnlySweep();
+  assert(!a.hasAttribute('data-mo-focus-hidden'));
 });
 test('SPA Messenger thread keeps exact destination',()=>{
   const f=fixture('https://www.facebook.com/marketplace/'); f.context.history.pushState(null,'','/messages/t/123');

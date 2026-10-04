@@ -3,15 +3,24 @@
   if (!/(^|\.)facebook\.com$/i.test(location.hostname) || window.__marketOnlyPullInstalled) return;
   window.__marketOnlyPullInstalled = true;
   let gesture = null, hint = null, lastRefresh = 0;
-  const allowed = () => /^\/marketplace\/?$/.test(location.pathname)
-    || /^\/marketplace\/(?:search|you\/saved)\/?$/.test(location.pathname);
-  function atTop(target) {
-    if ((document.scrollingElement && document.scrollingElement.scrollTop > 1) || scrollY > 1) return false;
+  function allowed() {
+    if (document.hidden || window.__marketOnlyActive === false) return false;
+    const path = location.pathname.toLowerCase();
+    if (!/^\/marketplace(?:\/|$)/.test(path)
+        || /^\/marketplace\/(?:item|create|profile|inbox|messages|selling|buying)(?:\/|$)/.test(path)) return false;
+    return !/^\/marketplace\/you(?:\/|$)/.test(path) || /^\/marketplace\/you\/saved\/?$/.test(path);
+  }
+  function scrollParents(target) {
+    const parents = [];
     for (let p = target; p && p !== document.documentElement; p = p.parentElement) {
       const css = getComputedStyle(p);
-      if (/(auto|scroll)/.test(css.overflowY) && p.scrollHeight > p.clientHeight + 1 && p.scrollTop > 1) return false;
+      if (/(auto|scroll)/.test(css.overflowY) && p.scrollHeight > p.clientHeight + 1) parents.push(p);
     }
-    return true;
+    return parents;
+  }
+  function atTop(parents) {
+    if ((document.scrollingElement && document.scrollingElement.scrollTop > 1) || scrollY > 1) return false;
+    return parents.every(p => p.scrollTop <= 1);
   }
   function hide() { if (hint) hint.style.display = 'none'; }
   function show(ready) {
@@ -27,12 +36,14 @@
   document.addEventListener('touchstart', e => {
     gesture = null; hide();
     if (!allowed() || e.touches.length !== 1 || Date.now() - lastRefresh < 1500) return;
-    if (!e.target.closest || e.target.closest('input,textarea,select,button,[role="button"],[role="dialog"],[contenteditable="true"]') || !atTop(e.target)) return;
-    gesture = {x:e.touches[0].clientX, y:e.touches[0].clientY, target:e.target, ready:false, claimed:false};
+    if (!e.target.closest || e.target.closest('input,textarea,select,button,[role="button"],[role="dialog"],[contenteditable]:not([contenteditable="false"])')) return;
+    const parents = scrollParents(e.target);
+    if (!atTop(parents)) return;
+    gesture = {x:e.touches[0].clientX, y:e.touches[0].clientY, parents, href:location.href, ready:false, claimed:false};
   }, {passive:true});
   document.addEventListener('touchmove', e => {
     if (!gesture) return;
-    if (!allowed() || e.touches.length !== 1 || !atTop(gesture.target)) { gesture = null; hide(); return; }
+    if (!allowed() || location.href !== gesture.href || e.touches.length !== 1 || !atTop(gesture.parents)) { gesture = null; hide(); return; }
     const dx = Math.abs(e.touches[0].clientX - gesture.x), dy = e.touches[0].clientY - gesture.y;
     if (dy < -8 || (dx > 12 && dx > Math.max(dy, 0) * .7)) { gesture = null; hide(); return; }
     if (dy < 18) { gesture.ready = false; if (gesture.claimed && e.cancelable) e.preventDefault(); hide(); return; }
@@ -41,9 +52,14 @@
     show(gesture.ready);
   }, {passive:false});
   document.addEventListener('touchend', e => {
-    const refresh = gesture && gesture.ready && allowed() && atTop(gesture.target) && e.touches.length === 0;
+    const refresh = gesture && gesture.ready && allowed() && location.href === gesture.href && atTop(gesture.parents) && e.touches.length === 0;
     gesture = null; hide();
     if (refresh) { lastRefresh = Date.now(); location.href = 'marketonly://refresh'; }
   }, {passive:true});
-  document.addEventListener('touchcancel', () => { gesture = null; hide(); }, {passive:true});
+  function cancel() { gesture = null; hide(); }
+  document.addEventListener('touchcancel', cancel, {passive:true});
+  document.addEventListener('visibilitychange', cancel);
+  window.addEventListener('marketonly:activity', cancel);
+  window.addEventListener('marketonly:navigation', cancel);
+  window.addEventListener('popstate', cancel);
 })();

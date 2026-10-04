@@ -11,6 +11,8 @@
       ? 'https://www.facebook.com' + u.pathname.replace(/\/?$/, '/') : null;
   };
   const clean = text => (text || '').replace(/\s+/g, ' ').trim();
+  const cardCache = new WeakMap(); let cardEpoch = 0;
+  function invalidate(records) { if (records.length) cardEpoch++; }
   const visible = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden' &&
     !e.closest('[data-mo-ad-hidden],[data-mo-ad],script,style,input,textarea,[contenteditable]');
   function lines(root) {
@@ -38,6 +40,8 @@
       if (p.matches('body,main,[role="main"]') || [...p.querySelectorAll('a[href*="/marketplace/item/"]')].some(a => listing(a.href) !== url)) break;
       root = p;
     }
+    const cached = cardCache.get(anchor);
+    if (cached && cached.root === root && cached.url === url && cached.epoch === cardEpoch) return cached.row && {...cached.row};
     const original = lines(root), summary = root.querySelector('[data-mo-summary-title]');
     let title = '', price = -1, place = '';
     if (summary) {
@@ -54,9 +58,14 @@
       else title = original.slice(index + 1).find(t => priceOf(t) < 0 && !/^(?:Just listed|Pending|Sold|Shipping|Delivery|Pickup)$/i.test(t)) || '';
     }
     if (!place) place = original.find(t => /^[^,]{1,70},\s*(?:QLD|NSW|VIC|SA|WA|NT|ACT|TAS)\b/i.test(t)) || '';
-    return title ? {url, title: title.slice(0,250), price, place: place.slice(0,100), notes: flags(original.join(' '))} : null;
+    const row = title ? {url, title: title.slice(0,250), price, place: place.slice(0,100), notes: flags(original.join(' '))} : null;
+    cardCache.set(anchor, {root,url,epoch:cardEpoch,row});return row && {...row};
   }
   window.__moListingSnapshot = () => {
+    if (document.hidden || window.__marketOnlyActive === false) return [];
+    // Native capture can run in the same task as React's update, before the
+    // observer callback. Drain pending source changes before consulting cache.
+    invalidate(observer.takeRecords());
     if (!/^\/marketplace(?:\/|$)/.test(location.pathname) || document.querySelector('input[type="password"]')) return [];
     const rows = new Map(), current = listing(location.href);
     if (current) {
@@ -94,4 +103,6 @@
     e.preventDefault();e.stopImmediatePropagation();
     location.href = 'marketonly://listing?url=' + encodeURIComponent(url);
   }, true);
+  const observer = new MutationObserver(invalidate);
+  observer.observe(document.documentElement,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','href']});
 })();

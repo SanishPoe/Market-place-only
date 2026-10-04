@@ -27,6 +27,16 @@ const template=content=>`<!doctype html><html><head><meta charset="utf-8"><style
  await test('newly loaded and recycled listing data are read afresh',async()=>{
   await page.locator('main').evaluate((e,c)=>e.innerHTML=c,card(8,'<span>$99</span><span>New chair</span>'));const [row]=await snapshot();assert.equal(row.title,'New chair');assert.equal(row.url,'https://www.facebook.com/marketplace/item/8/');
  });
+ await test('unchanged captures reuse extraction and synchronous source updates invalidate it',async()=>{
+  await setup(card(10,'<span>$300</span><span class="title">Chair</span><span>Brisbane, QLD</span>'));
+  await page.evaluate(()=>{window.walks=0;const old=Document.prototype.createTreeWalker;Document.prototype.createTreeWalker=function(...args){window.walks++;return old.apply(this,args)};});
+  await snapshot();assert(await page.evaluate(()=>window.walks>0));
+  await page.evaluate(()=>window.walks=0);await snapshot();assert.equal(await page.evaluate(()=>window.walks),0);
+  const rows=await page.evaluate(()=>{document.querySelector('.title').firstChild.nodeValue='Project chair needs repair';return window.__moListingSnapshot()});
+  assert.equal(rows[0].title,'Project chair needs repair');assert.match(rows[0].notes,/needs repair/);
+  await page.evaluate(()=>window.__marketOnlyActive=false);assert.deepEqual(await snapshot(),[]);
+  await page.evaluate(()=>window.__marketOnlyActive=true);assert.equal((await snapshot())[0].title,'Project chair needs repair');
+ });
  await test('detail extraction uses listing heading and asking price, not message contents',async()=>{
   await setup('<section><h1>2014 Holden Cruze</h1><span>A$4,500</span><span>Listed 2 hours ago in Gold Coast, QLD</span></section><textarea>My private message $200</textarea><section>Seller information $1</section>','https://www.facebook.com/marketplace/item/1/');
   const [row]=await snapshot();assert.equal(row.title,'2014 Holden Cruze');assert.equal(row.price,4500);assert.equal(row.place,'Gold Coast, QLD');assert(!JSON.stringify(row).includes('private'));

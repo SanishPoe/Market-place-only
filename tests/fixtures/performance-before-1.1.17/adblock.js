@@ -69,50 +69,21 @@
   const style=document.createElement('style');style.id='marketonly-ad-hiding';
   style.textContent='html[data-mo-ads="hidden"] [data-mo-ad-hidden]{display:none!important}';
   (document.head||root).appendChild(style);
-  let scheduled=false,frame=0,paused=false,dirty=true,cachedPath='',cachedAds=[],appliedAds=new Set(),lastHidden=null;
-  function currentAds(){
-    // Direct toolbar actions can run before MutationObserver's microtask. Drain
-    // its source records so discovery never returns a stale recycled ad.
-    if(observer.takeRecords().some(external))dirty=true;
-    if(dirty||cachedPath!==location.pathname){cachedAds=findAds();cachedPath=location.pathname;dirty=false;}
-    return cachedAds;
-  }
+  let scheduled=false;
   function sweep(){
-    cancelAnimationFrame(frame);frame=0;scheduled=false;
-    if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}
-    paused=false;
-    const eligible=allowed(),active=window.__marketOnlyHideAds!==false&&eligible;
+    scheduled=false;
+    const active=window.__marketOnlyHideAds!==false&&allowed();
     if(active){if(root.getAttribute('data-mo-ads')!=='hidden')root.setAttribute('data-mo-ads','hidden');}
     else root.removeAttribute('data-mo-ads');
-    const ads=new Set(eligible?currentAds():[]);
+    const ads=new Set(allowed()?findAds():[]);
     document.querySelectorAll('[data-mo-ad-hidden]').forEach(e=>{if(!ads.has(e))e.removeAttribute('data-mo-ad-hidden');});
     for(const ad of ads)if(!ad.hasAttribute('data-mo-ad-hidden'))ad.setAttribute('data-mo-ad-hidden','');
-    const layoutChanged=lastHidden!==active||ads.size!==appliedAds.size||[...ads].some(e=>!appliedAds.has(e));
-    appliedAds=ads;lastHidden=active;
-    if(typeof window.__marketOnlyLayout==='function')window.__marketOnlyLayout(layoutChanged);
+    if(typeof window.__marketOnlyLayout==='function')window.__marketOnlyLayout();
   }
-  const generated=node=>{const e=node?.nodeType===1?node:node?.parentElement;return !!e?.closest('[data-mo-summary],[data-mo-detail-generated-description],style[id^="marketonly"]');};
-  const withoutMotion=s=>(s||'').replace(/(?:^|;)\s*(?:transform|top|left)\s*:[^;]*(?=;|$)/gi,'').replace(/\s+/g,'');
-  const motionOnly=r=>r.type==='attributes'&&r.attributeName==='style'&&r.target.closest('[data-mo-grid]')
-    &&withoutMotion(r.oldValue)===withoutMotion(r.target.getAttribute('style'));
-  function external(r){return !generated(r.target)&&!(r.type==='childList'&&[...r.addedNodes,...r.removedNodes].length&&[...r.addedNodes,...r.removedNodes].every(generated))
-    // Browse ad detection uses disclosure text, destinations and DOM structure.
-    // Facebook changes classes/transforms while virtualising existing rows;
-    // those changes cannot create a browse ad. Detail headings also use weight.
-    &&!(r.type==='attributes'&&/^(class|style)$/.test(r.attributeName)&&!detail())
-    &&!motionOnly(r)&&!((r.type==='characterData'||r.type==='attributes')&&(r.target.nodeType===1?r.target:r.target.parentElement)?.closest('[role="status"],[role="progressbar"]'));}
-  function changed(records){
-    if(document.hidden||window.__marketOnlyActive===false){dirty=true;paused=true;return;}
-    if(!records.some(external))return;
-    dirty=true;schedule();
-  }
-  function schedule(){if(document.hidden||window.__marketOnlyActive===false){paused=true;return;}if(!scheduled){scheduled=true;frame=requestAnimationFrame(sweep);}}
-  function activity(){if(document.hidden||window.__marketOnlyActive===false){cancelAnimationFrame(frame);frame=0;scheduled=false;paused=true;}else if(paused)schedule();}
-  window.__marketOnlyFindAds=currentAds;
+  function schedule(){if(!scheduled){scheduled=true;setTimeout(sweep,120);}}
+  window.__marketOnlyFindAds=findAds;
   window.__marketOnlyAdSweep=sweep;
   addEventListener('popstate',schedule);
-  addEventListener('marketonly:navigation',()=>{dirty=true;schedule();});
-  addEventListener('marketonly:activity',activity);document.addEventListener('visibilitychange',activity);
-  const observer=new MutationObserver(changed);observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeOldValue:true,attributeFilter:['class','style','href','src','aria-label','title']});
+  new MutationObserver(schedule).observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['class','style','href','src','aria-label','title']});
   sweep();
 })();

@@ -25,13 +25,14 @@ def run(label, command):
 with tempfile.TemporaryDirectory(prefix='marketonly-checks-') as tmp:
     java = ROOT / 'app/src/main/java/au/sutto/marketonly'
     if run('java-compile', ['java','-m','jdk.compiler/com.sun.tools.javac.Main','-d',tmp,
-            str(java/'UrlRules.java'),str(java/'ExternalLinks.java'),
-            str(ROOT/'tests/UrlRulesTest.java'),str(ROOT/'tests/ExternalLinksTest.java')]):
-        for name in ['UrlRulesTest','ExternalLinksTest']:
+            str(java/'UrlRules.java'),str(java/'ExternalLinks.java'),str(java/'SmartSearch.java'),
+            str(ROOT/'tests/UrlRulesTest.java'),str(ROOT/'tests/ExternalLinksTest.java'),
+            str(ROOT/'tests/SmartSearchFilterTest.java')]):
+        for name in ['UrlRulesTest','ExternalLinksTest','SmartSearchFilterTest']:
             run(name, ['java','-cp',tmp,'au.sutto.marketonly.'+name])
 
-for name in ['search_navigation_test','external_intent_test','refresh_lifecycle_test','session_reset_test']:
-    run(name, ['python3','tests/'+name+'.py'])
+for test in sorted((ROOT/'tests').glob('*_test.py')):
+    run(test.stem, ['python3', str(test)])
 for name in ['guard_test','pull_refresh_test','refresh_snapshot_test']:
     run(name, ['node','tests/'+name+'.cjs'])
 for asset in sorted((ROOT/'app/src/main/assets').glob('*.js')):

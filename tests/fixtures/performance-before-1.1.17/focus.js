@@ -11,15 +11,13 @@
   const message = u => u && ((u.protocol === 'https:' && (/^(?:www\.)?messenger\.com$/i.test(u.hostname) || u.hostname === 'm.me' || (hostOK(u.hostname) && /^\/(?:messages|messenger)(?:\/|\.php|$)/.test(u.pathname)))) || u.protocol === 'fb-messenger:');
   const thread = u => message(u) && (/\/t\/[^/]+/.test(u.pathname) || u.hostname === 'm.me' || u.protocol === 'fb-messenger:');
   const openMessage = u => { location.href = 'marketonly://message?url=' + encodeURIComponent(u.href); };
-  let waitingUntil = 0, opened = '', scheduled = false, timer = 0, paused = false;
+  let waitingUntil = 0, opened = '', scheduled = false;
   // CSS markers leave Facebook-owned inline styles intact and are reversible
   // when React reuses a node for a different destination or navigation role.
   const hidden = new Set();
   const hide = (node, seen) => { seen.add(node); if (!node.hasAttribute('data-mo-focus-hidden')) node.setAttribute('data-mo-focus-hidden', ''); };
   function sweep() {
-    clearTimeout(timer); timer = 0; scheduled = false;
-    if (document.hidden || window.__marketOnlyActive === false) { paused = true; return; }
-    paused = false;
+    scheduled = false;
     if (auth()) {
       for (const node of hidden) node.removeAttribute('data-mo-focus-hidden');
       hidden.clear();
@@ -44,22 +42,14 @@
     }
   }
   window.__marketOnlySweep = sweep;
-  const generated = node => { const e = node?.nodeType === 1 ? node : node?.parentElement; return !!e?.closest('[data-mo-summary],[data-mo-detail-generated-description],style[id^="marketonly"]'); };
-  function changed(records) {
-    if (document.hidden || window.__marketOnlyActive === false) { paused = true; return; }
-    if (records.some(r => !generated(r.target) && !(r.type === 'childList' && [...r.addedNodes,...r.removedNodes].length && [...r.addedNodes,...r.removedNodes].every(generated))
-      && !(r.type === 'attributes' && r.target.closest('[role="status"],[role="progressbar"]')))) schedule();
-  }
-  function schedule() { if (document.hidden || window.__marketOnlyActive === false) { paused = true; return; } if (!scheduled) { scheduled = true; timer = setTimeout(sweep, 80); } }
-  function activity() { if (document.hidden || window.__marketOnlyActive === false) { clearTimeout(timer); timer = 0; scheduled = false; paused = true; } else if (paused) schedule(); }
+  function schedule() { if (!scheduled) { scheduled = true; setTimeout(sweep, 80); } }
   ['pushState', 'replaceState'].forEach(name => {
     const original = history[name];
     history[name] = function (state, title, target) {
       const destination = target == null ? null : url(target);
       if (!auth() && feed(destination)) { location.replace(market); return; }
       if (message(destination)) { openMessage(destination); return; }
-      const result = original.apply(this, arguments); schedule();
-      dispatchEvent(new Event('marketonly:navigation')); return result;
+      const result = original.apply(this, arguments); schedule(); return result;
     };
   });
   document.addEventListener('click', e => {
@@ -74,8 +64,7 @@
     }
   }, true);
   addEventListener('popstate', schedule);
-  addEventListener('marketonly:activity', activity); document.addEventListener('visibilitychange', activity);
-  new MutationObserver(changed).observe(document.documentElement, {
+  new MutationObserver(schedule).observe(document.documentElement, {
     childList:true, subtree:true, attributes:true,
     attributeFilter:['href','role','aria-label']
   });

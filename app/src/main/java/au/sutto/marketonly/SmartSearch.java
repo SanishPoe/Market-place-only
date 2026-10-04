@@ -7,6 +7,10 @@ import java.util.regex.*;
 public final class SmartSearch {
     private SmartSearch() {}
     public static final long MAX_AGE = 30L * 24 * 60 * 60 * 1000;
+    private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList("a","an","the","for","sale","car","cars","vehicle","vehicles"));
+    private static final Pattern PROJECT = Pattern.compile("(?i)\\b(not running|non[ -]?runner|won.t start|doesn.t (?:run|start)|blown|overheat(?:ing|s|ed)?|head gasket|mechanical (?:issue|problem)s?|needs? (?:an? )?(?:engine|repair|work)|engine (?:issue|problem)s?|project)\\b");
+    private static final Pattern NOT_WRITEOFF = Pattern.compile("\\b(?:not (?:a |an? )?|never |no )(?:(?:repairable|statutory) )?(?:write[ -]?off|written off)\\b");
+    private static final Pattern WRITEOFF = Pattern.compile("(?i)\\b(write[ -]?offs?|written off|wovr|wovi)\\b");
     public static class Listing {
         public String url="", title="", place="", notes="";
         public double price=-1, previousPrice=-1;
@@ -34,24 +38,26 @@ public final class SmartSearch {
     public static List<String> tokens(String s) {
         List<String> result=new ArrayList<>();
         for(String w:(s==null?"":s).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+"," ").split(" +"))
-            if(!w.isEmpty()&&!Arrays.asList("a","an","the","for","sale","car","cars","vehicle","vehicles").contains(w))result.add(w);
+            if(!w.isEmpty()&&!STOP_WORDS.contains(w))result.add(w);
         return result;
     }
     public static boolean project(String text) {
-        return Pattern.compile("(?i)\\b(not running|non[ -]?runner|won.t start|doesn.t (?:run|start)|blown|overheat(?:ing|s|ed)?|head gasket|mechanical (?:issue|problem)s?|needs? (?:an? )?(?:engine|repair|work)|engine (?:issue|problem)s?|project)\\b").matcher(text).find();
+        return PROJECT.matcher(text).find();
     }
     public static boolean writeoff(String text) {
-        String value=text.toLowerCase(Locale.ROOT).replaceAll("\\b(?:not (?:a |an? )?|never |no )(?:(?:repairable|statutory) )?(?:write[ -]?off|written off)\\b","");
-        return Pattern.compile("(?i)\\b(write[ -]?offs?|written off|wovr|wovi)\\b").matcher(value).find();
+        String value=NOT_WRITEOFF.matcher(text.toLowerCase(Locale.ROOT)).replaceAll("");
+        return WRITEOFF.matcher(value).find();
     }
     public static List<Listing> filter(Collection<Listing> listings, Query q, String order,long now) {
         List<Listing> result=new ArrayList<>();
+        // Query work is shared by the whole catalogue rather than repeated per row.
+        Set<String> required = new HashSet<>(tokens(q.words));
+        String[] excluded = q.excluded.toLowerCase(Locale.ROOT).split(",");
         for(Listing l:listings){
             String text=(l.title+" "+l.notes).toLowerCase(Locale.ROOT);
             if(l.dismissed||now-l.seen>MAX_AGE||q.unseen&&l.viewed||q.maxPrice>=0&&(l.price<0||l.price>q.maxPrice))continue;
-            boolean match=true;List<String> words=tokens(text);
-            for(String term:tokens(q.words))if(!words.contains(term))match=false;
-            for(String term:q.excluded.toLowerCase(Locale.ROOT).split(","))if(!term.trim().isEmpty()&&text.contains(term.trim()))match=false;
+            boolean match=required.isEmpty()||new HashSet<>(tokens(text)).containsAll(required);
+            for(String term:excluded)if(!term.trim().isEmpty()&&text.contains(term.trim()))match=false;
             if(!match||q.projects&&!project(text)||q.excludeWriteoffs&&writeoff(text))continue;
             result.add(l);
         }

@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 const script=fs.readFileSync(require('path').join(__dirname,'../app/src/main/assets/refresh-snapshot.js'),'utf8');
-let links=[];
+let links=[],styleReads=0;
 function card(id, options={}) {
   return {parentElement:options.parent||null,hidden:false,
     querySelector:()=>options.noPhoto?null:{},
@@ -12,7 +12,7 @@ function sample(host='www.facebook.com') {
   return JSON.parse(JSON.stringify(vm.runInNewContext(script,{
     location:{hostname:host,href:'https://'+host+'/marketplace/'},URL,Set,
     document:{querySelectorAll:()=>links},
-    getComputedStyle:p=>({display:p.display||'block',visibility:p.visibility||'visible'})
+    getComputedStyle:p=>{styleReads++;return {display:p.display||'block',visibility:p.visibility||'visible'}}
   })));
 }
 let cases=0;function test(name,fn){fn();cases++;console.log('PASS:',name)}
@@ -22,5 +22,7 @@ test('late replacement yields new IDs in actual DOM order',()=>{links=[card(3),c
 test('external lookalike URLs and unrelated images are excluded',()=>{links=[card(1,{href:'https://facebook.com.evil.test/marketplace/item/1/'}),card(2,{noPhoto:true}),card(3)];assert.deepEqual(sample(),['3'])});
 test('empty and detached layouts are not treated as successful listing results',()=>{links=[card(1,{noRect:true})];assert.deepEqual(sample(),[])});
 test('sample is bounded while preserving original order',()=>{links=Array.from({length:100},(_,i)=>card(i+1));assert.equal(sample().length,40);assert.equal(sample()[39],'40')});
+test('shared card ancestors are styled once per snapshot',()=>{const grandparent={display:'block'},parent={display:'block',parentElement:grandparent};links=Array.from({length:40},(_,i)=>card(i+1,{parent}));styleReads=0;assert.equal(sample().length,40);assert.equal(styleReads,42)});
+test('snapshot reflects a changed ancestor on its next invocation',()=>{const parent={display:'none'};links=[card(1,{parent})];assert.deepEqual(sample(),[]);parent.display='block';assert.deepEqual(sample(),['1'])});
 test('untrusted pages do not expose listing data',()=>assert.deepEqual(sample('example.com'),[]));
 console.log('PASS:',cases,'refresh snapshot fixtures; no live Facebook or Android test');

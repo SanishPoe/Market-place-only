@@ -42,14 +42,14 @@ jobs:
       - name: Verify installer
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/debug/app-debug.apk dist/MarketOnly-1.1.17-test.apk
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MarketOnly-1.1.17-test.apk
-          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 dist/MarketOnly-1.1.17-test.apk
-          python3 verify_apk_layout.py dist/MarketOnly-1.1.17-test.apk
-          sha256sum dist/MarketOnly-1.1.17-test.apk > dist/SHA256.txt
+          cp app/build/outputs/apk/debug/app-debug.apk dist/MarketOnly-1.1.18-tuned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose dist/MarketOnly-1.1.18-tuned.apk
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -P 16 4 dist/MarketOnly-1.1.18-tuned.apk
+          python3 verify_apk_layout.py dist/MarketOnly-1.1.18-tuned.apk
+          sha256sum dist/MarketOnly-1.1.18-tuned.apk > dist/SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: MarketOnly-1.1.17-test
+          name: MarketOnly-1.1.18-tuned
           path: dist/
           if-no-files-found: error
           retention-days: 30
