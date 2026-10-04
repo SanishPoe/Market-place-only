@@ -1,0 +1,37 @@
+name: Check public car-guide source
+on:
+  push:
+    branches: [guide-source-probe]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read public guide pages
+        run: |
+          mkdir -p guide-probe
+          python3 - <<'PY'
+          import urllib.request, urllib.error, pathlib, json
+          base='https://www.carsguide.com.au'
+          rows=[]
+          for name,path in [('robots','/robots.txt'),('bmw2009','/bmw/1-series/price/2009'),('cruze2014','/holden/cruze/price/2014')]:
+              url=base+path
+              try:
+                  request=urllib.request.Request(url,headers={'User-Agent':'MarketOnly-source-check/1.0'})
+                  with urllib.request.urlopen(request, timeout=20) as response:
+                      content=response.read(3000000)
+                      pathlib.Path('guide-probe',name+'.html').write_bytes(content)
+                      rows.append({'name':name,'status':response.status,'url':response.url,'bytes':len(content)})
+              except Exception as e:
+                  rows.append({'name':name,'error':str(e)})
+          pathlib.Path('guide-probe/results.json').write_text(json.dumps(rows,indent=2))
+          print(json.dumps(rows))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: car-guide-source-probe
+          path: guide-probe/
+          retention-days: 2
