@@ -81,6 +81,8 @@ async function nextPaint(page,read){
     await page.close();return result;
   }
   measurements.before=await work(baseline);measurements.after=await work(assets);
+  fs.mkdirSync(path.join(base,'test-output'),{recursive:true});
+  fs.writeFileSync(path.join(base,'test-output/performance-results.json'),JSON.stringify(measurements,null,2)+'\n');
   assert(measurements.before.unrelated.total>measurements.after.unrelated.total);
   assert.equal(measurements.after.unrelated.walkers,0,'A status update must not reparse listings');
   assert.equal(measurements.after.unrelated.total,0,'Unrelated status mutations must not sweep the feed');
@@ -133,4 +135,4 @@ async function nextPaint(page,read){
   fs.mkdirSync(path.join(base,'test-output'),{recursive:true});
   fs.writeFileSync(path.join(base,'test-output/performance-results.json'),JSON.stringify(measurements,null,2)+'\n');
   await page.close();await browser.close();
-})().catch(e=>{console.error(e);process.exitCode=1;});
+})().catch(e=>{console.error(e);process.exit(1);});
