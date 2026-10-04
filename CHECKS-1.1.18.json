@@ -1,0 +1,200 @@
+{
+  "scope": "Controlled regression fixtures. No Android or authenticated Facebook acceptance.",
+  "results": [
+    {
+      "name": "java-compile",
+      "passed": true,
+      "seconds": 1.39
+    },
+    {
+      "name": "UrlRulesTest",
+      "passed": true,
+      "seconds": 0.07
+    },
+    {
+      "name": "ExternalLinksTest",
+      "passed": true,
+      "seconds": 0.09
+    },
+    {
+      "name": "SmartSearchFilterTest",
+      "passed": true,
+      "seconds": 0.07
+    },
+    {
+      "name": "browser_chrome_test",
+      "passed": true,
+      "seconds": 1.02
+    },
+    {
+      "name": "browser_launch_test",
+      "passed": true,
+      "seconds": 0.71
+    },
+    {
+      "name": "external_intent_test",
+      "passed": true,
+      "seconds": 0.75
+    },
+    {
+      "name": "injection_lifecycle_test",
+      "passed": true,
+      "seconds": 0.89
+    },
+    {
+      "name": "refresh_lifecycle_test",
+      "passed": true,
+      "seconds": 0.92
+    },
+    {
+      "name": "search_navigation_test",
+      "passed": true,
+      "seconds": 0.76
+    },
+    {
+      "name": "session_reset_test",
+      "passed": true,
+      "seconds": 0.74
+    },
+    {
+      "name": "guard_test",
+      "passed": true,
+      "seconds": 0.04
+    },
+    {
+      "name": "pull_refresh_test",
+      "passed": true,
+      "seconds": 0.05
+    },
+    {
+      "name": "refresh_snapshot_test",
+      "passed": true,
+      "seconds": 0.04
+    },
+    {
+      "name": "syntax-adblock",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-detail",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-focus",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-listing-tools",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-marketplace",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-media",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-pull-refresh",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "syntax-refresh-snapshot",
+      "passed": true,
+      "seconds": 0.02
+    },
+    {
+      "name": "adblock_browser_test",
+      "passed": true,
+      "seconds": 5.59
+    },
+    {
+      "name": "deep_container_test",
+      "passed": true,
+      "seconds": 2.47
+    },
+    {
+      "name": "description_browser_test",
+      "passed": true,
+      "seconds": 8.81
+    },
+    {
+      "name": "detail_browser_test",
+      "passed": true,
+      "seconds": 13.65
+    },
+    {
+      "name": "focus_browser_test",
+      "passed": true,
+      "seconds": 1.05
+    },
+    {
+      "name": "header_tabs_test",
+      "passed": true,
+      "seconds": 5.33
+    },
+    {
+      "name": "layout_browser_test",
+      "passed": true,
+      "seconds": 3.48
+    },
+    {
+      "name": "listing_tools_test",
+      "passed": true,
+      "seconds": 0.74
+    },
+    {
+      "name": "location_caption_test",
+      "passed": true,
+      "seconds": 2.47
+    },
+    {
+      "name": "map_detail_test",
+      "passed": true,
+      "seconds": 10.39
+    },
+    {
+      "name": "media_browser_test",
+      "passed": true,
+      "seconds": 14.58
+    },
+    {
+      "name": "mixed_layout_test",
+      "passed": true,
+      "seconds": 3.87
+    },
+    {
+      "name": "nested_layout_test",
+      "passed": true,
+      "seconds": 3.64
+    },
+    {
+      "name": "performance_browser_test",
+      "passed": true,
+      "seconds": 12.07
+    },
+    {
+      "name": "scroll_browser_test",
+      "passed": true,
+      "seconds": 14.14
+    },
+    {
+      "name": "small_card_test",
+      "passed": true,
+      "seconds": 1.23
+    },
+    {
+      "name": "viewer_browser_test",
+      "passed": true,
+      "seconds": 4.85
+    }
+  ]
+}

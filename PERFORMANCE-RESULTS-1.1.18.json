@@ -1,0 +1,98 @@
+{
+  "scope": "Controlled Chromium DOM fixtures with 160 cards nested 20 levels; no live Facebook, Android, FPS, or network benchmark.",
+  "before": {
+    "unrelated": {
+      "selectors": 19675,
+      "styles": 37630,
+      "rects": 0,
+      "walkers": 1600,
+      "total": 58905
+    },
+    "repeated": {
+      "selectors": 7820,
+      "styles": 15052,
+      "rects": 0,
+      "walkers": 640,
+      "total": 23512
+    },
+    "cardStyles": {
+      "selectors": 19680,
+      "styles": 37630,
+      "rects": 0,
+      "walkers": 1600,
+      "total": 58910
+    },
+    "paused": {
+      "selectors": 15747,
+      "styles": 30104,
+      "rects": 0,
+      "walkers": 1280,
+      "total": 47131
+    },
+    "resumedTitle": "$100 · Recycled listing 3",
+    "firstPaint": {
+      "adDisplay": "block",
+      "newCard": false
+    }
+  },
+  "after": {
+    "unrelated": {
+      "selectors": 0,
+      "styles": 0,
+      "rects": 0,
+      "walkers": 0,
+      "total": 0
+    },
+    "repeated": {
+      "selectors": 3976,
+      "styles": 332,
+      "rects": 0,
+      "walkers": 0,
+      "total": 4308
+    },
+    "cardStyles": {
+      "selectors": 155,
+      "styles": 130,
+      "rects": 0,
+      "walkers": 5,
+      "total": 290
+    },
+    "paused": {
+      "selectors": 4,
+      "styles": 0,
+      "rects": 0,
+      "walkers": 0,
+      "total": 4
+    },
+    "resumedTitle": "$100 · Recycled listing 3",
+    "firstPaint": {
+      "adDisplay": "none",
+      "newCard": true
+    }
+  },
+  "virtualisation": {
+    "native": {
+      "collectionHeight": 24000,
+      "leading": 35,
+      "scrollHeight": 24035
+    },
+    "before": {
+      "scrollTop": 4500,
+      "scrollHeight": 24036,
+      "collectionHeight": 24000,
+      "leading": 36,
+      "height": 300,
+      "transform": "matrix(1, 0, 0, 1, 0, 4500)",
+      "window": 0
+    },
+    "after": {
+      "scrollTop": 4500,
+      "scrollHeight": 24036,
+      "collectionHeight": 24000,
+      "leading": 36,
+      "height": 300,
+      "transform": "matrix(1, 0, 0, 1, 0, 4500)",
+      "window": 0
+    }
+  }
+}

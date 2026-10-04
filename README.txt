@@ -72,7 +72,7 @@ app/src/main/res/                     - Android resources
 app/src/main/AndroidManifest.xml      - Permissions and link routing
 app/build.gradle                     - App version and Android build settings
 tests/                               - Controlled regression fixtures
-RELEASE-1.1.16.txt                    - Latest changes and validation limits
+RELEASE-1.1.18.txt                    - Latest changes and validation limits
 
 TESTS
 These are standalone controlled tests, not an Android instrumentation suite.
