@@ -1,4 +1,4 @@
-name: Check public car-guide source
+name: Check car-guide API sources
 on:
   push:
     branches: [guide-source-probe]
@@ -9,29 +9,37 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Read public guide pages
+      - name: Read official public product pages
         run: |
           mkdir -p guide-probe
           python3 - <<'PY'
-          import urllib.request, urllib.error, pathlib, json
-          base='https://www.carsguide.com.au'
-          rows=[]
-          for name,path in [('robots','/robots.txt'),('bmw2009','/bmw/1-series/price/2009'),('cruze2014','/holden/cruze/price/2014')]:
-              url=base+path
-              try:
-                  request=urllib.request.Request(url,headers={'User-Agent':'MarketOnly-source-check/1.0'})
-                  with urllib.request.urlopen(request, timeout=20) as response:
-                      content=response.read(3000000)
-                      pathlib.Path('guide-probe',name+'.html').write_bytes(content)
-                      rows.append({'name':name,'status':response.status,'url':response.url,'bytes':len(content)})
-              except Exception as e:
-                  rows.append({'name':name,'error':str(e)})
+          import urllib.request, pathlib, json, concurrent.futures, re
+          targets=[
+            ('redbook-home','https://www.redbook.com.au/'),
+            ('redbook-industry','https://www.redbook.com.au/industry'),
+            ('redbook-corporate','https://www.redbook.com.au/corporate'),
+            ('redbook-business','https://www.redbook.com.au/business'),
+            ('redbook-robots','https://www.redbook.com.au/robots.txt'),
+            ('redbook-help','https://www.redbook.com.au/help'),
+            ('carsguide-about','https://www.carsguide.com.au/about-us'),
+            ('carsguide-contact','https://www.carsguide.com.au/contact-us')]
+          def get(target):
+            name,url=target
+            try:
+              request=urllib.request.Request(url,headers={'User-Agent':'MarketOnly-source-check/1.0'})
+              with urllib.request.urlopen(request,timeout=20) as response:
+                data=response.read(3000000);pathlib.Path('guide-probe',name+'.html').write_bytes(data)
+                text=data.decode('utf-8',errors='replace')
+                links=sorted(set(re.findall(r'href=["\x27]([^"\x27]+)',text)))
+                hits=[p for p in re.findall(r'.{0,160}(?:API|api|data feed|business|Business|corporate|Corporate).{0,240}',text)][:30]
+                return {'name':name,'status':response.status,'url':response.url,'bytes':len(data),'links':[p for p in links if re.search('api|data|business|corporate|industry|contact',p,re.I)],'snippets':hits}
+            except Exception as e:return {'name':name,'url':url,'error':str(e)}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:rows=list(pool.map(get,targets))
           pathlib.Path('guide-probe/results.json').write_text(json.dumps(rows,indent=2))
           print(json.dumps(rows))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: car-guide-source-probe
+          name: car-guide-api-probe
           path: guide-probe/
           retention-days: 2
